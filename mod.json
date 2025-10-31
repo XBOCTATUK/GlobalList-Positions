@@ -1,0 +1,23 @@
+{
+	"geode": "4.9.0",
+	"gd": {
+		"win": "2.2074",
+		"android": "2.2074",
+		"mac": "2.2074",
+		"ios": "2.2074"
+	},
+	"id": "xboctatuk.globallistpositions",
+	"name": "GlobalList Positions",
+	"version": "v1.0.0",
+	"developer": "xboctatuk",
+	"description": "",
+	"resources": {
+		"sprites": [
+			"resources/global-list.png"
+		]
+	},
+	"tags": [
+		"online",
+		"interface"
+	]
+}
