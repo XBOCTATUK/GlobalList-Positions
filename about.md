@@ -5,5 +5,4 @@ This mod adds the level position from demoblist.org to the level info.
 <img src="resources/screen-2.png" width="auto" alt="second screen" />
 
 # Support
-Discord: lisenok1042<br>
-Telegram: [xboctatuk6](https://t.me/xboctatuk6)
+Discord: lisenok1042
