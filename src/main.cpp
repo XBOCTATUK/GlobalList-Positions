@@ -109,7 +109,7 @@ class $modify(MyLevelCell, LevelCell) {
         else {
             std::string url = "https://api.demonlist.org/levels/classic?level_id=" + std::to_string(levelID);
             auto req = web::WebRequest();
-            m_fields->m_listener.bind([levelID, globalListIcon, globalListLabel, downloadIcon, downloadLabel, likesIcon, likesLabel, orbIcon, orbLabel, gap, gapFlag, this](web::WebTask::Event* e) {
+            m_fields->m_listener.bind([levelID, globalListIcon, globalListLabel, gap, gapFlag, this](web::WebTask::Event* e) {
                 if (auto res = e->getValue()) {
                     if (!res->ok()) {
                         log::error("Request error: {}", res->code());
@@ -125,6 +125,14 @@ class $modify(MyLevelCell, LevelCell) {
                             globalListLabel->setVisible(false);
 
                             if (gapFlag) {
+                                auto levelCellMain = this->getChildByID("main-layer");
+                                auto downloadIcon = levelCellMain->getChildByID("downloads-icon");
+                                auto downloadLabel = levelCellMain->getChildByID("downloads-label");
+                                auto likesIcon = levelCellMain->getChildByID("likes-icon");
+                                auto likesLabel = levelCellMain->getChildByID("likes-label");
+                                auto orbIcon = levelCellMain->getChildByID("orbs-icon");
+                                auto orbLabel = levelCellMain->getChildByID("orbs-label");
+
                                 downloadIcon->setPositionX(downloadIcon->getPositionX() + gap * 0.6f);
                                 downloadLabel->setPositionX(downloadLabel->getPositionX() + gap * 0.6f);
                                 likesIcon->setPositionX(likesIcon->getPositionX() + gap * 1.2f);
@@ -187,6 +195,7 @@ class $modify(LevelInfoLayer) {
             auto exactLengthLabel = this->getChildByID("exact-length-label");
             auto orbIcon = this->getChildByID("orbs-icon");
             auto orbLabel = this->getChildByID("orbs-label");
+
             downloadIcon->setPositionY(downloadIcon->getPositionY() + 14.0f);
             downloadLabel->setPositionY(downloadLabel->getPositionY() + 14.0f);
             likesIcon->setPositionY(likesIcon->getPositionY() + 14.0f);
@@ -228,6 +237,7 @@ class $modify(LevelInfoLayer) {
 
     void getPos() {
         int levelID = m_level->m_levelID.value();
+        auto globalListIcon = static_cast<CCLabelBMFont*>(this->getChildByIDRecursive("global-list-icon"_spr));
         auto globalListLabel = static_cast<CCLabelBMFont*>(this->getChildByIDRecursive("global-list-label"_spr));
 
         if (positionsCache.contains(std::to_string(levelID))) {
@@ -238,7 +248,7 @@ class $modify(LevelInfoLayer) {
         else {
             std::string url = "https://api.demonlist.org/levels/classic?level_id=" + std::to_string(levelID);
             auto req = web::WebRequest();
-            m_fields->m_listener.bind([levelID, globalListLabel, this](web::WebTask::Event* e) {
+            m_fields->m_listener.bind([levelID, globalListIcon, globalListLabel, this](web::WebTask::Event* e) {
                 if (auto res = e->getValue()) {
                     if (!res->ok()) {
                         log::error("Request error: {}", res->code());
@@ -250,7 +260,30 @@ class $modify(LevelInfoLayer) {
 
                         if (!json.contains("data") || !json["data"].isArray() || json["data"].size() == 0) {
                             log::error("JSON parse error");
-                            globalListLabel->setString("N/A");
+                            
+                            globalListIcon->setVisible(false);
+                            globalListLabel->setVisible(false);
+
+                            auto downloadIcon = this->getChildByID("downloads-icon");
+                            auto downloadLabel = this->getChildByID("downloads-label");
+                            auto likesIcon = this->getChildByID("likes-icon");
+                            auto likesLabel = this->getChildByID("likes-label");
+                            auto lengthIcon = this->getChildByID("length-icon");
+                            auto lengthLabel = this->getChildByID("length-label");
+                            auto exactLengthLabel = this->getChildByID("exact-length-label");
+                            auto orbIcon = this->getChildByID("orbs-icon");
+                            auto orbLabel = this->getChildByID("orbs-label");
+
+                            downloadIcon->setPositionY(downloadIcon->getPositionY() - 14.0f);
+                            downloadLabel->setPositionY(downloadLabel->getPositionY() - 14.0f);
+                            likesIcon->setPositionY(likesIcon->getPositionY() - 14.0f);
+                            likesLabel->setPositionY(likesLabel->getPositionY() - 14.0f);
+                            lengthIcon->setPositionY(lengthIcon->getPositionY() - 14.0f);
+                            lengthLabel->setPositionY(lengthLabel->getPositionY() - 14.0f);
+                            exactLengthLabel->setPositionY(exactLengthLabel->getPositionY() - 14.0f);
+                            orbIcon->setPositionY(orbIcon->getPositionY() - 14.0f);
+                            orbLabel->setPositionY(orbLabel->getPositionY() - 14.0f);
+
                             return;
                         }
                         const matjson::Value& levelData = json["data"][0];
