@@ -16,6 +16,9 @@
 			"resources/global-list.png"
 		]
 	},
+	"links": {
+		"source": "https://github.com/XBOCTATUK/GlobalList-Positions"
+	},
 	"tags": [
 		"online",
 		"interface"
