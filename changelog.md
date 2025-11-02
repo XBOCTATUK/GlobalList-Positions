@@ -6,3 +6,6 @@
 
 # 1.0.2
 - Fixed about.md
+
+# 1.0.3
+- Fixed mod desc (demoblist => demonlist)
