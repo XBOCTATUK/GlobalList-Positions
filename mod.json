@@ -8,7 +8,7 @@
 	},
 	"id": "xboctatuk.globallistpositions",
 	"name": "GlobalList Positions",
-	"version": "v1.0.2",
+	"version": "v1.0.3",
 	"developer": "xboctatuk",
 	"description": "",
 	"resources": {
@@ -24,4 +24,5 @@
 		"interface"
 	]
 }
+
 
