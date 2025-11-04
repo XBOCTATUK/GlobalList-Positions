@@ -5,5 +5,8 @@ This mod adds the level position from demonlist.org to the level info.
 <img src="resources/screen-2.png" width="auto" alt="second screen" />
 <img src="resources/screen-3.png" width="auto" alt="third screen" />
 
+# Credits
+- hiimjasmine00 (An in-game demonlist was created based on his mod (Integrated DemonList))
+
 # Support
 Discord: lisenok1042
