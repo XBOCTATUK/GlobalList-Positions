@@ -1,4 +1,4 @@
-#include <Geode/Geode.hpp>
+#include "./GlobalListLayer/GlobalListLayer.hpp"
 #include <Geode/modify/LevelCell.hpp>
 #include <Geode/modify/LevelInfoLayer.hpp>
 #include <Geode/modify/LevelSearchLayer.hpp>
@@ -24,12 +24,12 @@ class $modify(MyLevelCell, LevelCell) {
         EventListener<web::WebTask> m_listener;
     };
 
-    void loadFromLevel(GJGameLevel* level) {
+    void loadFromLevel(GJGameLevel * level) {
         LevelCell::loadFromLevel(level);
 
         if (level->m_demonDifficulty == int(DemonDifficultyType::ExtremeDemon) ||
-            level->m_demonDifficulty == int(DemonDifficultyType::InsaneDemon) ||(
-            level->getAverageDifficulty() == int(GJDifficulty::Insane) && level->m_stars == 0)) {
+            level->m_demonDifficulty == int(DemonDifficultyType::InsaneDemon) || (
+                level->getAverageDifficulty() == int(GJDifficulty::Insane) && level->m_stars == 0)) {
             auto levelCellMain = this->getChildByID("main-layer");
             auto downloadIcon = levelCellMain->getChildByID("downloads-icon");
             auto downloadLabel = levelCellMain->getChildByID("downloads-label");
@@ -41,14 +41,14 @@ class $modify(MyLevelCell, LevelCell) {
             auto orbLabel = levelCellMain->getChildByID("orbs-label");
 
             float globalListIconX = 0.0f;
-            if (orbLabel) 
+            if (orbLabel)
                 globalListIconX = orbLabel->getScaleX() * orbLabel->getContentWidth() + orbLabel->getPositionX() +
-                (downloadIcon->getPositionX() - downloadIcon->getContentWidth() * downloadIcon->getScaleX() / 2 -
-                lengthLabel->getContentWidth() * lengthLabel->getScaleX() - lengthLabel->getPositionX());
+                (downloadIcon->getPositionX() - downloadIcon->getContentWidth() * downloadIcon->getScaleX() / 2.0f -
+                    lengthLabel->getContentWidth() * lengthLabel->getScaleX() - lengthLabel->getPositionX());
             else
                 globalListIconX = likesLabel->getScaleX() * likesLabel->getContentWidth() + likesLabel->getPositionX() +
-                (downloadIcon->getPositionX() - downloadIcon->getContentWidth() * downloadIcon->getScaleX() / 2 -
-                lengthLabel->getContentWidth() * lengthLabel->getScaleX() - lengthLabel->getPositionX());
+                (downloadIcon->getPositionX() - downloadIcon->getContentWidth() * downloadIcon->getScaleX() / 2.0f -
+                    lengthLabel->getContentWidth() * lengthLabel->getScaleX() - lengthLabel->getPositionX());
 
             auto globalListIcon = CCSprite::create("global-list.png"_spr);
             globalListIcon->setScale(0.45f);
@@ -68,7 +68,7 @@ class $modify(MyLevelCell, LevelCell) {
             globalListLabel->setID("global-list-label"_spr);
             levelCellMain->addChild(globalListLabel);
 
-            float gap = (likesIcon->getPositionX() - likesIcon->getContentWidth() * likesIcon->getScaleX() / 2) -
+            float gap = (likesIcon->getPositionX() - likesIcon->getContentWidth() * likesIcon->getScaleX() / 2.0f) -
                 (downloadLabel->getContentWidth() * downloadLabel->getScaleX() + downloadLabel->getPositionX());
             bool gapFlag = false;
             if (globalListLabel->getPositionX() > 310.0f) {
@@ -140,9 +140,11 @@ class $modify(MyLevelCell, LevelCell) {
                                 if (orbIcon) {
                                     orbIcon->setPositionX(orbIcon->getPositionX() + gap * 1.8f);
                                     orbLabel->setPositionX(orbLabel->getPositionX() + gap * 1.8f);
+                                    globalListIcon->setPositionX(globalListIcon->getPositionX() + gap * 2.4f);
+                                    globalListLabel->setPositionX(globalListLabel->getPositionX() + gap * 2.4f);
                                 }
-                                globalListIcon->setPositionX(globalListIcon->getPositionX() + gap * 2.4f);
-                                globalListLabel->setPositionX(globalListLabel->getPositionX() + gap * 2.4f);
+                                globalListIcon->setPositionX(globalListIcon->getPositionX() + gap * 1.8f);
+                                globalListLabel->setPositionX(globalListLabel->getPositionX() + gap * 1.8f);
                             }
 
                             return;
@@ -166,7 +168,7 @@ class $modify(MyLevelCell, LevelCell) {
                     log::warn("Request is canceled");
                     globalListLabel->setString("N/A");
                 }
-            });
+                });
             auto task = req.get(url);
             m_fields->m_listener.setFilter(task);
         }
@@ -178,12 +180,12 @@ class $modify(LevelInfoLayer) {
         EventListener<web::WebTask> m_listener;
     };
 
-    bool init(GJGameLevel* level, bool challenge) {
+    bool init(GJGameLevel * level, bool challenge) {
         if (!LevelInfoLayer::init(level, challenge)) return false;
 
         if (level->m_demonDifficulty == int(DemonDifficultyType::ExtremeDemon) ||
             level->m_demonDifficulty == int(DemonDifficultyType::InsaneDemon) || (
-            level->getAverageDifficulty() == int(GJDifficulty::Insane) && level->m_stars == 0)) {
+                level->getAverageDifficulty() == int(GJDifficulty::Insane) && level->m_stars == 0)) {
             float globalListIconY = 0.0f;
 
             auto downloadIcon = this->getChildByID("downloads-icon");
@@ -211,7 +213,7 @@ class $modify(LevelInfoLayer) {
             else
                 globalListIconY = lengthIcon->getPositionY() - (likesIcon->getPositionY() - lengthIcon->getPositionY());
 
-            float globalListIconX = lengthIcon->getPositionX() + lengthIcon->getContentWidth() / 2;
+            float globalListIconX = lengthIcon->getPositionX() + lengthIcon->getContentWidth() / 2.0f;
 
             auto globalListIcon = CCSprite::create("global-list.png"_spr);
             globalListIcon->setContentSize({ 23.5f, 23.5f });
@@ -260,7 +262,7 @@ class $modify(LevelInfoLayer) {
 
                         if (!json.contains("data") || !json["data"].isArray() || json["data"].size() == 0) {
                             log::error("JSON parse error");
-                            
+
                             globalListIcon->setVisible(false);
                             globalListLabel->setVisible(false);
 
@@ -309,5 +311,33 @@ class $modify(LevelInfoLayer) {
             auto task = req.get(url);
             m_fields->m_listener.setFilter(task);
         }
+    }
+};
+
+class $modify(MyLevelSearchLayer, LevelSearchLayer) {
+    struct Fields {
+        EventListener<web::WebTask> m_listener;
+        LevelBrowserLayer* m_currentBrowserLayer = nullptr;
+        std::vector<int> m_globalListLevels;
+    };
+
+    bool init(int p0) {
+        if (!LevelSearchLayer::init(p0)) return false;
+
+        auto filterMenu = this->getChildByID("other-filter-menu");
+
+        auto globalListSpr = CircleButtonSprite::createWithSprite("global-list.png"_spr);
+        globalListSpr->getTopNode()->setScale(1.1f);
+        globalListSpr->setScale(0.8f);
+        auto globalListBtn = CCMenuItemSpriteExtra::create(globalListSpr, this, menu_selector(MyLevelSearchLayer::onBtn));
+        globalListBtn->setID("global-list-button");
+        filterMenu->addChild(globalListBtn);
+        filterMenu->updateLayout();
+
+        return true;
+    }
+
+    void onBtn(CCObject* sender) {
+        CCDirector::get()->pushScene(CCTransitionFade::create(0.5f, GlobalListLayer::scene()));
     }
 };
