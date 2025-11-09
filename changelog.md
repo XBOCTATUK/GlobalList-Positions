@@ -1,3 +1,6 @@
+# 1.1.4
+- A little reliability fix.
+
 # 1.1.3
 - Added "Compact Lists" mod support.
 - Removed the input of special characters when searching for a level.

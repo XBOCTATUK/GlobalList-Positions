@@ -125,7 +125,7 @@ class $modify(MyLevelCell, LevelCell) {
                     }
                     else {
                         auto data = res->json();
-                        matjson::Value json = data.unwrap();
+                        matjson::Value json = data.unwrapOr(matjson::Value::object());
 
                         if (!json.contains("data") || !json["data"].isArray() || json["data"].size() == 0) {
                             globalListIcon->setVisible(false);
@@ -265,7 +265,7 @@ class $modify(LevelInfoLayer) {
                     }
                     else {
                         auto data = res->json();
-                        matjson::Value json = data.unwrap();
+                        matjson::Value json = data.unwrapOr(matjson::Value::object());
 
                         if (!json.contains("data") || !json["data"].isArray() || json["data"].size() == 0) {
                             globalListIcon->setVisible(false);
