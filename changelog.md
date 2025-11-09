@@ -1,3 +1,8 @@
+# 1.1.3
+- Added "Compact Lists" mod support.
+- Removed the input of special characters when searching for a level.
+- Mod renamed from "GlobalList Positions" to "Global Demonlist Positions".
+
 # 1.1.2
 - Fixed reliability for the level list
 

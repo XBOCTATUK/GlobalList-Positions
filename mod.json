@@ -7,8 +7,8 @@
 		"ios": "2.2074"
 	},
 	"id": "xboctatuk.globallistpositions",
-	"name": "GlobalList Positions",
-	"version": "v1.1.2",
+	"name": "Global Demonlist Positions",
+	"version": "v1.1.3",
 	"developer": "xboctatuk",
 	"description": "This mod adds the level position from demonlist.org to the level info.",
 	"resources": {

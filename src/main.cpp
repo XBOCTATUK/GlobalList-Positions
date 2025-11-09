@@ -26,6 +26,7 @@ class $modify(MyLevelCell, LevelCell) {
 
     void loadFromLevel(GJGameLevel * level) {
         LevelCell::loadFromLevel(level);
+        auto compactLists = Loader::get()->getLoadedMod("cvolton.compact_lists");
 
         if (level->m_demonDifficulty == int(DemonDifficultyType::ExtremeDemon) ||
             level->m_demonDifficulty == int(DemonDifficultyType::InsaneDemon) || (
@@ -71,7 +72,14 @@ class $modify(MyLevelCell, LevelCell) {
             float gap = (likesIcon->getPositionX() - likesIcon->getContentWidth() * likesIcon->getScaleX() / 2.0f) -
                 (downloadLabel->getContentWidth() * downloadLabel->getScaleX() + downloadLabel->getPositionX());
             bool gapFlag = false;
-            if (globalListLabel->getPositionX() > 310.0f) {
+            
+            if (compactLists->isEnabled() && compactLists->getSettingValue<bool>("enable-compact-lists")) {
+                globalListIcon->setScale(0.3f);
+                globalListIcon->setPositionY(8.5f);
+                globalListLabel->setScale(0.3f);
+                globalListLabel->setPosition(globalListLabel->getPositionX() - 2.0f, 8.5f);
+            }
+            else if (globalListLabel->getPositionX() > 310.0f) {
                 gapFlag = true;
                 downloadIcon->setPositionX(downloadIcon->getPositionX() - gap * 0.6f);
                 downloadLabel->setPositionX(downloadLabel->getPositionX() - gap * 0.6f);

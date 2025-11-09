@@ -86,7 +86,6 @@ bool GlobalListLayer::init() {
 	m_searchBarMenu->addChild(searchBtn);
 
 	m_searchBar = TextInput::create(400.0f, "Search levels...");
-	m_searchBar->setCommonFilter(CommonFilter::Any);
 	m_searchBar->setMaxCharCount(35);
 	m_searchBar->setPosition({ 165.0f, 15.0f });
 	m_searchBar->setTextAlign(TextInputAlign::Left);
