@@ -73,7 +73,7 @@ class $modify(MyLevelCell, LevelCell) {
                 (downloadLabel->getContentWidth() * downloadLabel->getScaleX() + downloadLabel->getPositionX());
             bool gapFlag = false;
             
-            if (compactLists->isEnabled() && compactLists->getSettingValue<bool>("enable-compact-lists")) {
+            if (compactLists && compactLists->isEnabled() && compactLists->getSettingValue<bool>("enable-compact-lists")) {
                 globalListIcon->setScale(0.3f);
                 globalListIcon->setPositionY(8.5f);
                 globalListLabel->setScale(0.3f);
