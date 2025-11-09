@@ -1,3 +1,6 @@
+# 1.1.2
+- Fixed reliability for the level list
+
 # 1.1.1
 - Changed mod description.
 

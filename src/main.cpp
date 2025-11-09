@@ -120,7 +120,6 @@ class $modify(MyLevelCell, LevelCell) {
                         matjson::Value json = data.unwrap();
 
                         if (!json.contains("data") || !json["data"].isArray() || json["data"].size() == 0) {
-                            log::error("JSON parse error");
                             globalListIcon->setVisible(false);
                             globalListLabel->setVisible(false);
 
@@ -261,8 +260,6 @@ class $modify(LevelInfoLayer) {
                         matjson::Value json = data.unwrap();
 
                         if (!json.contains("data") || !json["data"].isArray() || json["data"].size() == 0) {
-                            log::error("JSON parse error");
-
                             globalListIcon->setVisible(false);
                             globalListLabel->setVisible(false);
 

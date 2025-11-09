@@ -211,7 +211,7 @@ void GlobalListLayer::loadGlobalList() {
 	m_listener.bind([this](web::WebTask::Event* e) {
 		if (auto res = e->getValue()) {
 			if (!res->ok()) {
-				log::error("Failed to load GlobalList. Failed code: ", res->code());
+				log::error("Failed to load GlobalList. Failed code: {}", res->code());
 				failure(res->code());
 				return;
 			}
@@ -225,9 +225,15 @@ void GlobalListLayer::loadGlobalList() {
 			}
 
 			for (const auto& level : json["data"]) {
-				int levelID = level["level_id"].asInt().unwrap();
-				std::string name = level["name"].asString().unwrap();
-				int place = level["place"].asInt().unwrap();
+				int levelID = level["level_id"].asInt().unwrapOr(0);
+				std::string name = level["name"].asString().unwrapOr("");
+				int place = level["place"].asInt().unwrapOr(0);
+
+				if (levelID == 0 || name == "" || place == 0) {
+					failure(204);
+					return;
+				}
+
 				m_levels.push_back({ levelID, name, place });
 			}
 
@@ -285,7 +291,6 @@ void GlobalListLayer::populateList(const std::string& query) {
 			setupPageInfo("", "");
 		}
 		else {
-			log::info("{}", searchObject->m_searchQuery);
 			glm->getOnlineLevels(searchObject);
 		}
 	}
@@ -294,7 +299,6 @@ void GlobalListLayer::populateList(const std::string& query) {
 void GlobalListLayer::search() {
 	auto query = m_searchBar->getString();
 	if (m_query != query) {
-		log::info("{}", query);
 		showLoading();
 
 		m_page = 0;
@@ -359,11 +363,14 @@ void GlobalListLayer::showLoading() {
 }
 
 void GlobalListLayer::failure(int code) {
-	FLAlertLayer::create(
+	auto alertLayer = FLAlertLayer::create(
 		fmt::format("Load failed ({})", code).c_str(),
 		"Failed to load GlobalList. Please try again.",
 		"OK"
-	)->show();
+	);
+	alertLayer->m_scene = this;
+	alertLayer->show();
+
 	m_loadingCircle->setVisible(false);
 }
 
