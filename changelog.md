@@ -1,3 +1,6 @@
+# 1.1.6
+- Added "Node IDs" in dependencies.
+
 # 1.1.5
 - Fixed UI on level cell.
 - Fixed a crash when opening an editor tab. (I hope)
