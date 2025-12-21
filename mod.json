@@ -10,7 +10,7 @@
 	"name": "Global Demonlist Positions",
 	"version": "v1.1.7",
 	"developer": "xboctatuk",
-	"description": "This mod adds the level position to the level info and adds in-game demonlist from demonlist.org.",
+	"description": "This mod adds the level position to the level info and in-game demonlist from demonlist.org.",
 	"resources": {
 		"sprites": [
 			"resources/*.png"
