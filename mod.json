@@ -1,5 +1,5 @@
 {
-	"geode": "4.9.0",
+	"geode": "4.10.0",
 	"gd": {
 		"win": "2.2074",
 		"android": "2.2074",
@@ -8,9 +8,9 @@
 	},
 	"id": "xboctatuk.globallistpositions",
 	"name": "Global Demonlist Positions",
-	"version": "v1.1.6",
+	"version": "v1.1.7",
 	"developer": "xboctatuk",
-	"description": "This mod adds the level position from demonlist.org to the level info.",
+	"description": "This mod adds the level position to the level info and adds in-game demonlist from demonlist.org.",
 	"resources": {
 		"sprites": [
 			"resources/*.png"

@@ -4,6 +4,8 @@
 #include <Geode/ui/TextInput.hpp>
 #include <Geode/utils/web.hpp>
 
+using namespace geode::prelude;
+
 class GlobalListLevel {
 public:
 	int levelID;
@@ -51,7 +53,7 @@ protected:
 	std::string m_searchBarText;
 	std::vector<std::string> m_searchResults;
 
-
+	
 
 	bool init() override;
 	void failure(int code);

@@ -1,4 +1,3 @@
-#include "./GlobalListLayer.hpp"
 #include <Geode/binding/AppDelegate.hpp>
 #include <Geode/binding/CustomListView.hpp>
 #include <Geode/binding/GameLevelManager.hpp>
@@ -9,10 +8,7 @@
 #include <Geode/binding/SetIDPopup.hpp>
 #include <Geode/loader/Mod.hpp>
 #include <random>
-
-using namespace geode::prelude;
-
-#define API_URL "https://api.demonlist.org/levels/classic"
+#include "./GlobalListLayer.hpp"
 
 GlobalListLayer* GlobalListLayer::create() {
 	auto ret = new GlobalListLayer();
@@ -79,12 +75,6 @@ bool GlobalListLayer::init() {
 	searchBarBG->setID("search-bar-backgrownd");
 	m_searchBarMenu->addChild(searchBarBG);
 
-	auto searchBtn = CCMenuItemExt::createSpriteExtraWithFrameName("gj_findBtn_001.png", 0.7f, [this](auto) { search(); });
-	searchBtn->setPosition({ m_searchBarMenu->getContentWidth() -
-							 searchBtn->getContentWidth() * searchBtn->getScaleX() / 2.0f - 15.0f, 15.0f});
-	searchBtn->setID("search-button");
-	m_searchBarMenu->addChild(searchBtn);
-
 	m_searchBar = TextInput::create(400.0f, "Search levels...");
 	m_searchBar->setMaxCharCount(35);
 	m_searchBar->setPosition({ 165.0f, 15.0f });
@@ -94,6 +84,12 @@ bool GlobalListLayer::init() {
 	m_searchBar->setScale(0.75f);
 	m_searchBar->setID("search-bar");
 	m_searchBarMenu->addChild(m_searchBar);
+	
+	auto searchBtn = CCMenuItemExt::createSpriteExtraWithFrameName("gj_findBtn_001.png", 0.7f, [this](auto) { search(); });
+	searchBtn->setPosition({ m_searchBarMenu->getContentWidth() -
+							 searchBtn->getContentWidth() * searchBtn->getScaleX() / 2.0f - 15.0f, 15.0f});
+	searchBtn->setID("search-button");
+	m_searchBarMenu->addChild(searchBtn);
 
 	auto btnsMenu = CCMenu::create();
 	btnsMenu->setPosition({ 0.0f, 0.0f });
@@ -128,6 +124,8 @@ bool GlobalListLayer::init() {
 	auto refreshButton = CCMenuItemExt::createSpriteExtra(refreshBtnSpr, [this](auto) {
 		showLoading();
 		loadGlobalList();
+		auto mod = Mod::get();
+		log::info("{} {} {} {} {}", mod->getSavedValue("shortLength", false), mod->getSavedValue("mediumLength", false), mod->getSavedValue("longLength", false), mod->getSavedValue("xlLength", false), mod->getSavedValue("customLength", false));
 	});
 	refreshButton->setPosition({ winSize.width - refreshBtnSpr->getContentWidth() / 2.0f - 4.0f, refreshBtnSpr->getContentHeight() / 2.0f + 4.0f });
 	refreshButton->setID("refresh-button");
@@ -204,7 +202,7 @@ bool GlobalListLayer::init() {
 }
 
 void GlobalListLayer::loadGlobalList() {
-	std::string url = "https://api.demonlist.org/levels/classic";
+	std::string url = "https://api.demonlist.org/level/classic/list";
 	auto req = web::WebRequest();
 
 	m_listener.bind([this](web::WebTask::Event* e) {
@@ -217,16 +215,16 @@ void GlobalListLayer::loadGlobalList() {
 			m_levels.clear();
 			auto data = res->json();
 
-			matjson::Value json = data.unwrapOr(matjson::Value::array());
-			if (!json.contains("data") || !json["data"].isArray() || json["data"].size() == 0) {
+			matjson::Value json = data.ok().value();
+			if (!json.contains("data") || !json["data"].contains("levels") || !json["data"]["levels"].isArray() || json["data"]["levels"].size() == 0) {
 				failure(204);
 				return;
 			}
 
-			for (const auto& level : json["data"]) {
-				int levelID = level["level_id"].asInt().unwrapOr(0);
+			for (const auto& level : json["data"]["levels"]) {
+				int levelID = level["ingame_id"].asInt().unwrapOr(0);
 				std::string name = level["name"].asString().unwrapOr("");
-				int place = level["place"].asInt().unwrapOr(0);
+				int place = level["placement"].asInt().unwrapOr(0);
 
 				if (levelID == 0 || name == "" || place == 0) {
 					failure(204);

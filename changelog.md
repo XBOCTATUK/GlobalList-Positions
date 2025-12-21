@@ -1,3 +1,7 @@
+# 1.1.7
+- The mod now uses the new Global Demonlist API.
+- Minor code improvement.
+
 # 1.1.6
 - Added "Node IDs" in dependencies.
 

@@ -1,25 +1,13 @@
-#include "./GlobalListLayer/GlobalListLayer.hpp"
 #include <Geode/modify/LevelCell.hpp>
 #include <Geode/modify/LevelInfoLayer.hpp>
 #include <Geode/modify/LevelSearchLayer.hpp>
+#include "./GlobalListLayer/GlobalListLayer.hpp"
 
-using namespace geode::prelude;
-
-template <typename T>
-T GetJsonValue(const matjson::Value& parent, const std::string key, T defaultValue) {
-    if (!parent.contains(key) || parent[key].isNull())
-        return defaultValue;
-    auto result = parent[key].as<T>();
-
-    if (result.isOk())
-        return result.unwrap();
-    else
-        return defaultValue;
+namespace geode::prelude {
+    std::unordered_map<std::string, int> g_positionsCache;
 }
 
-matjson::Value positionsCache;
-
-class $modify(MyLevelCell, LevelCell) {
+class $modify(LevelCell) {
     struct Fields {
         EventListener<web::WebTask> m_listener;
     };
@@ -112,13 +100,13 @@ class $modify(MyLevelCell, LevelCell) {
         auto orbIcon = levelCellMain->getChildByID("orbs-icon");
         auto orbLabel = levelCellMain->getChildByID("orbs-label");
 
-        if (positionsCache.contains(std::to_string(levelID))) {
-            int place = GetJsonValue<int>(positionsCache, std::to_string(levelID), 0);
+        if (g_positionsCache.contains(std::to_string(levelID))) {
+            int place = g_positionsCache[std::to_string(levelID)];
             std::string globalListLabellStr = "#" + std::to_string(place);
             globalListLabel->setString(globalListLabellStr.c_str());
         }
         else {
-            std::string url = "https://api.demonlist.org/levels/classic?level_id=" + std::to_string(levelID);
+            std::string url = "https://api.demonlist.org/level/classic/get?ingame_id=" + std::to_string(levelID);
             auto req = web::WebRequest();
             m_fields->m_listener.bind([levelID, globalListIcon, globalListLabel, gap, gapFlag, this](web::WebTask::Event* e) {
                 if (auto res = e->getValue()) {
@@ -128,9 +116,9 @@ class $modify(MyLevelCell, LevelCell) {
                     }
                     else {
                         auto data = res->json();
-                        matjson::Value json = data.unwrapOr(matjson::Value::object());
+                        matjson::Value json = data.ok().value();
 
-                        if (!json.contains("data") || !json["data"].isArray() || json["data"].size() == 0) {
+                        if (!json.contains("data") || !json["data"].isObject() || json["data"].size() == 0) {
                             globalListIcon->setVisible(false);
                             globalListLabel->setVisible(false);
 
@@ -159,12 +147,12 @@ class $modify(MyLevelCell, LevelCell) {
 
                             return;
                         }
-                        const matjson::Value& levelData = json["data"][0];
+                        const matjson::Value levelData = json["data"];
 
-                        int place = GetJsonValue<int>(levelData, "place", 0);
+                        int place = levelData["placement"].asInt().ok().value();
 
                         if (place != 0) {
-                            positionsCache[std::to_string(levelID)] = place;
+                            g_positionsCache[std::to_string(levelID)] = place;
 
                             std::string globalListLabellStr = "#" + std::to_string(place);
                             globalListLabel->setString(globalListLabellStr.c_str());
@@ -252,13 +240,13 @@ class $modify(LevelInfoLayer) {
         auto globalListIcon = static_cast<CCLabelBMFont*>(this->getChildByIDRecursive("global-list-icon"_spr));
         auto globalListLabel = static_cast<CCLabelBMFont*>(this->getChildByIDRecursive("global-list-label"_spr));
 
-        if (positionsCache.contains(std::to_string(levelID))) {
-            int place = GetJsonValue<int>(positionsCache, std::to_string(levelID), 0);
+        if (g_positionsCache.contains(std::to_string(levelID))) {
+            int place = g_positionsCache[std::to_string(levelID)];
             std::string globalListLabellStr = "#" + std::to_string(place);
             globalListLabel->setString(globalListLabellStr.c_str());
         }
         else {
-            std::string url = "https://api.demonlist.org/levels/classic?level_id=" + std::to_string(levelID);
+            std::string url = "https://api.demonlist.org/level/classic/get?ingame_id=" + std::to_string(levelID);
             auto req = web::WebRequest();
             m_fields->m_listener.bind([levelID, globalListIcon, globalListLabel, this](web::WebTask::Event* e) {
                 if (auto res = e->getValue()) {
@@ -270,7 +258,7 @@ class $modify(LevelInfoLayer) {
                         auto data = res->json();
                         matjson::Value json = data.unwrapOr(matjson::Value::object());
 
-                        if (!json.contains("data") || !json["data"].isArray() || json["data"].size() == 0) {
+                        if (!json.contains("data") || !json["data"].isObject() || json["data"].size() == 0) {
                             globalListIcon->setVisible(false);
                             globalListLabel->setVisible(false);
 
@@ -296,12 +284,12 @@ class $modify(LevelInfoLayer) {
 
                             return;
                         }
-                        const matjson::Value& levelData = json["data"][0];
+                        const matjson::Value& levelData = json["data"];
 
-                        int place = GetJsonValue<int>(levelData, "place", 0);
+                        int place = levelData["placement"].asInt().ok().value();
 
                         if (place != 0) {
-                            positionsCache[std::to_string(levelID)] = place;
+                            g_positionsCache[std::to_string(levelID)] = place;
 
                             std::string globalListLabellStr = "#" + std::to_string(place);
                             globalListLabel->setString(globalListLabellStr.c_str());
@@ -323,12 +311,6 @@ class $modify(LevelInfoLayer) {
 };
 
 class $modify(MyLevelSearchLayer, LevelSearchLayer) {
-    struct Fields {
-        EventListener<web::WebTask> m_listener;
-        LevelBrowserLayer* m_currentBrowserLayer = nullptr;
-        std::vector<int> m_globalListLevels;
-    };
-
     bool init(int p0) {
         if (!LevelSearchLayer::init(p0)) return false;
 
