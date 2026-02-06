@@ -248,7 +248,7 @@ void GlobalListLayer::populateList(const std::string& query) {
 
 	if (query.empty()) {
 		for (auto& level : m_levels) {
-			m_searchResults.push_back(std::to_string(level.levelID));
+			m_searchResults.push_back(level.levelID);
 		}
 	}
 	else {
@@ -256,7 +256,7 @@ void GlobalListLayer::populateList(const std::string& query) {
 		for (auto& level : m_levels) {
 			if (string::toLower(level.name).find(lowerQuery) == std::string::npos &&
 				std::to_string(level.levelID) != lowerQuery) continue;
-			m_searchResults.push_back(std::to_string(level.levelID));
+			m_searchResults.push_back(level.levelID);
 		}
 	}
 
@@ -279,7 +279,7 @@ void GlobalListLayer::populateList(const std::string& query) {
 
 		for (int i = m_lvlsPerPage * m_page; i < std::min(m_lvlsPerPage * (m_page + 1), int(m_searchResults.size())); i++) {
 			if (!searchQuery.empty()) searchQuery += ",";
-			searchQuery += m_searchResults[i];
+			searchQuery += std::to_string(m_searchResults[i]);
 		}
 		searchObject->m_searchQuery = searchQuery;
 
