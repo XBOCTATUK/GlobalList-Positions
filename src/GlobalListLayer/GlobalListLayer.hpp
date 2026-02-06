@@ -8,7 +8,8 @@
 
 using namespace geode::prelude;
 
-inline std::unordered_map<std::string, int> g_positionsCache;
+inline std::unordered_map<int, int> g_positionsCache;
+inline std::unordered_map<int, bool> g_levelsWithoutPositions;
 
 class GlobalListLevel {
 public:
@@ -55,7 +56,7 @@ protected:
 	int m_lvlsPerPage = 10;
 	std::string m_query;
 	std::string m_searchBarText;
-	std::vector<std::string> m_searchResults;
+	std::vector<int> m_searchResults;
 
 	
 

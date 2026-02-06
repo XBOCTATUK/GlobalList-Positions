@@ -3,14 +3,22 @@
 #include <Geode/modify/LevelInfoLayer.hpp>
 #include <Geode/modify/LevelSearchLayer.hpp>
 
-class $modify(LevelCell) {
+void removeMyNodesAndRestorePositions(const int levelID, CCNode* globalListLabel, CCNode* globalListIcon, const std::unordered_map<CCNode*, float>& originalPositions, const bool forLevelCell) {
+    g_levelsWithoutPositions[levelID] = true;
+    if (globalListLabel) globalListLabel->setVisible(false);
+    if (globalListIcon) globalListIcon->setVisible(false);
+    if (forLevelCell) { for (auto& [node, xPos] : originalPositions) if (node) node->setPositionX(xPos); }
+    else { for (auto& [node, yPos] : originalPositions) if (node) node->setPositionY(yPos); }
+}
+
+class $modify(MyLevelCell, LevelCell) {
     struct Fields {
         EventListener<web::WebTask> m_listener;
     };
 
-    void loadFromLevel(GJGameLevel * level) {
+    void loadFromLevel(GJGameLevel* level) {
         LevelCell::loadFromLevel(level);
-        auto compactLists = Loader::get()->getLoadedMod("cvolton.compact_lists");
+        if (!level || level->m_levelType == GJLevelType::Main || level->m_levelType == GJLevelType::Editor || g_levelsWithoutPositions.contains(level->m_levelID.value())) return;
 
         auto levelCellMain = this->getChildByID("main-layer");
         auto infoLabel = levelCellMain->getChildByID("info-label");
@@ -18,6 +26,8 @@ class $modify(LevelCell) {
         if ( !infoLabel && (level->m_demonDifficulty == int(DemonDifficultyType::ExtremeDemon) ||
             level->m_demonDifficulty == int(DemonDifficultyType::InsaneDemon) ||
             (level->getAverageDifficulty() == int(GJDifficulty::Insane) && level->m_stars == 0))) {
+
+            std::unordered_map<CCNode*, float> originalPositions = {};
             
             auto downloadIcon = levelCellMain->getChildByID("downloads-icon");
             auto downloadLabel = levelCellMain->getChildByID("downloads-label");
@@ -60,7 +70,7 @@ class $modify(LevelCell) {
                 (downloadLabel->getContentWidth() * downloadLabel->getScaleX() + downloadLabel->getPositionX());
             bool gapFlag = false;
             
-            if (compactLists && compactLists->isEnabled() && compactLists->getSettingValue<bool>("enable-compact-lists")) {
+            if (this->m_compactView) {
                 globalListIcon->setScale(0.3f);
                 globalListIcon->setPositionY(8.5f);
                 globalListLabel->setScale(0.3f);
@@ -68,6 +78,14 @@ class $modify(LevelCell) {
             }
             else if (globalListLabel->getPositionX() > 310.0f) {
                 gapFlag = true;
+                originalPositions[downloadIcon] = downloadIcon->getPositionX();
+                originalPositions[downloadLabel] = downloadLabel->getPositionX();
+                originalPositions[likesIcon] = likesIcon->getPositionX();
+                originalPositions[likesLabel] = likesLabel->getPositionX();
+                originalPositions[orbIcon] = orbIcon->getPositionX();
+                originalPositions[orbLabel] = orbLabel->getPositionX();
+                originalPositions[globalListIcon] = globalListIcon->getPositionX();
+                originalPositions[globalListLabel] = globalListLabel->getPositionX();
                 downloadIcon->setPositionX(downloadIcon->getPositionX() - gap * 0.6f);
                 downloadLabel->setPositionX(downloadLabel->getPositionX() - gap * 0.6f);
                 likesIcon->setPositionX(likesIcon->getPositionX() - gap * 1.2f);
@@ -78,37 +96,26 @@ class $modify(LevelCell) {
                 globalListLabel->setPositionX(globalListLabel->getPositionX() - gap * 2.4f);
             }
 
-            getPos(gap, gapFlag);
+            MyLevelCell::getPos(gap, gapFlag, originalPositions);
         }
     }
 
-    void getPos(float gap, bool gapFlag) {
+    void getPos(float gap, bool gapFlag, const std::unordered_map<CCNode*, float>& originalPositions) {
         int levelID = m_level->m_levelID.value();
-        auto globalListIcon = static_cast<CCLabelBMFont*>(this->getChildByIDRecursive("global-list-icon"_spr));
-        auto globalListLabel = static_cast<CCLabelBMFont*>(this->getChildByIDRecursive("global-list-label"_spr));
-        auto levelCellMain = this->getChildByID("main-layer");
-        auto downloadIcon = levelCellMain->getChildByID("downloads-icon");
-        auto downloadLabel = levelCellMain->getChildByID("downloads-label");
-        auto likesIcon = levelCellMain->getChildByID("likes-icon");
-        auto likesLabel = levelCellMain->getChildByID("likes-label");
-        auto lengthIcon = levelCellMain->getChildByID("length-icon");
-        auto lengthLabel = levelCellMain->getChildByID("length-label");
-        auto orbIcon = levelCellMain->getChildByID("orbs-icon");
-        auto orbLabel = levelCellMain->getChildByID("orbs-label");
+        auto globalListIcon = static_cast<CCSprite*>(this->m_mainLayer->getChildByID("global-list-icon"_spr));
+        auto globalListLabel = static_cast<CCLabelBMFont*>(this->m_mainLayer->getChildByID("global-list-label"_spr));
 
-        if (g_positionsCache.contains(std::to_string(levelID))) {
-            int place = g_positionsCache[std::to_string(levelID)];
-            std::string globalListLabellStr = "#" + std::to_string(place);
-            globalListLabel->setString(globalListLabellStr.c_str());
+        if (g_positionsCache.contains(levelID)) {
+            globalListLabel->setString(fmt::format("#{}", g_positionsCache[levelID]).c_str());
         }
         else {
             std::string url = "https://api.demonlist.org/level/classic/get?ingame_id=" + std::to_string(levelID);
             auto req = web::WebRequest();
-            m_fields->m_listener.bind([levelID, globalListIcon, globalListLabel, gap, gapFlag, this](web::WebTask::Event* e) {
+            m_fields->m_listener.bind([levelID, globalListIcon, globalListLabel, gap, gapFlag, originalPositions, this](web::WebTask::Event* e) {
                 if (auto res = e->getValue()) {
                     if (!res->ok()) {
                         log::error("Request error: {}", res->code());
-                        globalListLabel->setString("N/A");
+                        removeMyNodesAndRestorePositions(levelID, globalListLabel, globalListIcon, originalPositions, true);
                     }
                     else {
                         auto data = res->json();
@@ -119,7 +126,7 @@ class $modify(LevelCell) {
                             globalListLabel->setVisible(false);
 
                             if (gapFlag) {
-                                auto levelCellMain = this->getChildByID("main-layer");
+                                auto levelCellMain = this->m_mainLayer;
                                 auto downloadIcon = levelCellMain->getChildByID("downloads-icon");
                                 auto downloadLabel = levelCellMain->getChildByID("downloads-label");
                                 auto likesIcon = levelCellMain->getChildByID("likes-icon");
@@ -148,38 +155,41 @@ class $modify(LevelCell) {
                         int place = levelData["placement"].asInt().ok().value();
 
                         if (place != 0) {
-                            g_positionsCache[std::to_string(levelID)] = place;
+                            g_positionsCache[levelID] = place;
 
                             std::string globalListLabellStr = "#" + std::to_string(place);
                             globalListLabel->setString(globalListLabellStr.c_str());
                         }
                         else {
-                            globalListLabel->setString("N/A");
+                            removeMyNodesAndRestorePositions(levelID, globalListLabel, globalListIcon, originalPositions, true);
                         }
                     }
                 }
                 else if (e->isCancelled()) {
                     log::warn("Request is canceled");
-                    globalListLabel->setString("N/A");
+                    removeMyNodesAndRestorePositions(levelID, globalListLabel, globalListIcon, originalPositions, true);
                 }
-                });
+            });
             auto task = req.get(url);
             m_fields->m_listener.setFilter(task);
         }
     }
 };
 
-class $modify(LevelInfoLayer) {
+class $modify(MyLevelInfoLayer, LevelInfoLayer) {
     struct Fields {
         EventListener<web::WebTask> m_listener;
     };
 
-    bool init(GJGameLevel * level, bool challenge) {
+    bool init(GJGameLevel* level, bool challenge) {
         if (!LevelInfoLayer::init(level, challenge)) return false;
+        if (!level || level->m_levelType == GJLevelType::Main || level->m_levelType == GJLevelType::Editor || g_levelsWithoutPositions.contains(level->m_levelID.value())) return true;
 
         if (level->m_demonDifficulty == int(DemonDifficultyType::ExtremeDemon) ||
             level->m_demonDifficulty == int(DemonDifficultyType::InsaneDemon) || (
                 level->getAverageDifficulty() == int(GJDifficulty::Insane) && level->m_stars == 0)) {
+
+            std::unordered_map<CCNode*, float> originalPositions = {};
             float globalListIconY = 0.0f;
 
             auto downloadIcon = this->getChildByID("downloads-icon");
@@ -191,6 +201,16 @@ class $modify(LevelInfoLayer) {
             auto exactLengthLabel = this->getChildByID("exact-length-label");
             auto orbIcon = this->getChildByID("orbs-icon");
             auto orbLabel = this->getChildByID("orbs-label");
+
+            originalPositions[downloadIcon] = downloadIcon->getPositionY();
+            originalPositions[downloadLabel] = downloadLabel->getPositionY();
+            originalPositions[likesIcon] = likesIcon->getPositionY();
+            originalPositions[likesLabel] = likesLabel->getPositionY();
+            originalPositions[lengthIcon] = lengthIcon->getPositionY();
+            originalPositions[lengthLabel] = lengthLabel->getPositionY();
+            originalPositions[exactLengthLabel] = exactLengthLabel->getPositionY();
+            originalPositions[orbIcon] = orbIcon->getPositionY();
+            originalPositions[orbLabel] = orbLabel->getPositionY();
 
             downloadIcon->setPositionY(downloadIcon->getPositionY() + 14.0f);
             downloadLabel->setPositionY(downloadLabel->getPositionY() + 14.0f);
@@ -225,30 +245,28 @@ class $modify(LevelInfoLayer) {
             globalListLabel->setID("global-list-label"_spr);
             this->addChild(globalListLabel);
 
-            getPos();
+            MyLevelInfoLayer::getPos(originalPositions);
         }
 
         return true;
     }
 
-    void getPos() {
+    void getPos(const std::unordered_map<CCNode*, float>& originalPositions) {
         int levelID = m_level->m_levelID.value();
         auto globalListIcon = static_cast<CCLabelBMFont*>(this->getChildByIDRecursive("global-list-icon"_spr));
         auto globalListLabel = static_cast<CCLabelBMFont*>(this->getChildByIDRecursive("global-list-label"_spr));
 
-        if (g_positionsCache.contains(std::to_string(levelID))) {
-            int place = g_positionsCache[std::to_string(levelID)];
-            std::string globalListLabellStr = "#" + std::to_string(place);
-            globalListLabel->setString(globalListLabellStr.c_str());
+        if (g_positionsCache.contains(levelID)) {
+            globalListLabel->setString(fmt::format("#{}", g_positionsCache[levelID]).c_str());
         }
         else {
             std::string url = "https://api.demonlist.org/level/classic/get?ingame_id=" + std::to_string(levelID);
             auto req = web::WebRequest();
-            m_fields->m_listener.bind([levelID, globalListIcon, globalListLabel, this](web::WebTask::Event* e) {
+            m_fields->m_listener.bind([levelID, globalListIcon, globalListLabel, originalPositions, this](web::WebTask::Event* e) {
                 if (auto res = e->getValue()) {
                     if (!res->ok()) {
                         log::error("Request error: {}", res->code());
-                        globalListLabel->setString("N/A");
+                        removeMyNodesAndRestorePositions(levelID, globalListLabel, globalListIcon, originalPositions, false);
                     }
                     else {
                         auto data = res->json();
@@ -285,21 +303,19 @@ class $modify(LevelInfoLayer) {
                         int place = levelData["placement"].asInt().ok().value();
 
                         if (place != 0) {
-                            g_positionsCache[std::to_string(levelID)] = place;
-
-                            std::string globalListLabellStr = "#" + std::to_string(place);
-                            globalListLabel->setString(globalListLabellStr.c_str());
+                            g_positionsCache[levelID] = place;
+                            globalListLabel->setString(fmt::format("#{}", place).c_str());
                         }
                         else {
-                            globalListLabel->setString("N/A");
+                            removeMyNodesAndRestorePositions(levelID, globalListLabel, globalListIcon, originalPositions, false);
                         }
                     }
                 }
                 else if (e->isCancelled()) {
                     log::warn("Request is canceled");
-                    globalListLabel->setString("N/A");
+                    removeMyNodesAndRestorePositions(levelID, globalListLabel, globalListIcon, originalPositions, false);
                 }
-                });
+            });
             auto task = req.get(url);
             m_fields->m_listener.setFilter(task);
         }
