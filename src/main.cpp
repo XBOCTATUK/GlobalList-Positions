@@ -3,6 +3,13 @@
 #include <Geode/modify/LevelInfoLayer.hpp>
 #include <Geode/modify/LevelSearchLayer.hpp>
 
+void removeMyNodesAndRestorePositions(CCNode* globalListLabel, CCNode* globalListIcon, const std::unordered_map<CCNode*, float>& originalPositions, const bool forLevelCell) {
+    if (globalListLabel) globalListLabel->removeMeAndCleanup();
+    if (globalListIcon) globalListIcon->removeMeAndCleanup();
+    if (forLevelCell) { for (auto& [node, xPos] : originalPositions) if (node) node->setPositionX(xPos); }
+    else { for (auto& [node, yPos] : originalPositions) if (node) node->setPositionY(yPos); }
+}
+
 class $modify(MyLevelCell, LevelCell) {
     struct Fields {
         EventListener<web::WebTask> m_listener;
@@ -106,9 +113,7 @@ class $modify(MyLevelCell, LevelCell) {
                 if (auto res = e->getValue()) {
                     if (!res->ok()) {
                         log::error("Request error: {}", res->code());
-                        globalListLabel->removeMeAndCleanup();
-                        globalListIcon->removeMeAndCleanup();
-                        for (auto& [node, xPos] : originalPositions) if (node) node->setPositionX(xPos);
+                        removeMyNodesAndRestorePositions(globalListLabel, globalListIcon, originalPositions, true);
                     }
                     else {
                         auto data = res->json();
@@ -154,15 +159,13 @@ class $modify(MyLevelCell, LevelCell) {
                             globalListLabel->setString(globalListLabellStr.c_str());
                         }
                         else {
-                            globalListLabel->setString("N/A");
+                            removeMyNodesAndRestorePositions(globalListLabel, globalListIcon, originalPositions, true);
                         }
                     }
                 }
                 else if (e->isCancelled()) {
                     log::warn("Request is canceled");
-                    globalListLabel->removeMeAndCleanup();
-                    globalListIcon->removeMeAndCleanup();
-                    for (auto& [node, xPos] : originalPositions) if (node) node->setPositionX(xPos);
+                    removeMyNodesAndRestorePositions(globalListLabel, globalListIcon, originalPositions, true);
                 }
             });
             auto task = req.get(url);
@@ -260,9 +263,7 @@ class $modify(MyLevelInfoLayer, LevelInfoLayer) {
                 if (auto res = e->getValue()) {
                     if (!res->ok()) {
                         log::error("Request error: {}", res->code());
-                        globalListLabel->removeMeAndCleanup();
-                        globalListIcon->removeMeAndCleanup();
-                        for (auto& [node, yPos] : originalPositions) if (node) node->setPositionY(yPos);
+                        removeMyNodesAndRestorePositions(globalListLabel, globalListIcon, originalPositions, false);
                     }
                     else {
                         auto data = res->json();
@@ -303,16 +304,13 @@ class $modify(MyLevelInfoLayer, LevelInfoLayer) {
                             globalListLabel->setString(fmt::format("#{}", place).c_str());
                         }
                         else {
-                            globalListLabel->removeMeAndCleanup();
-                            globalListIcon->removeMeAndCleanup();
+                            removeMyNodesAndRestorePositions(globalListLabel, globalListIcon, originalPositions, false);
                         }
                     }
                 }
                 else if (e->isCancelled()) {
                     log::warn("Request is canceled");
-                    globalListLabel->removeMeAndCleanup();
-                    globalListIcon->removeMeAndCleanup();
-                    for (auto& [node, yPos] : originalPositions) if (node) node->setPositionY(yPos);
+                    removeMyNodesAndRestorePositions(globalListLabel, globalListIcon, originalPositions, false);
                 }
             });
             auto task = req.get(url);
