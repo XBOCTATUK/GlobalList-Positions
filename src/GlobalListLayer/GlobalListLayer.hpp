@@ -9,6 +9,7 @@
 using namespace geode::prelude;
 
 inline std::unordered_map<std::string, int> g_positionsCache;
+inline std::vector<int> g_levelsWithoutPositions;
 
 class GlobalListLevel {
 public:

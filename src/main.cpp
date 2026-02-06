@@ -3,7 +3,8 @@
 #include <Geode/modify/LevelInfoLayer.hpp>
 #include <Geode/modify/LevelSearchLayer.hpp>
 
-void removeMyNodesAndRestorePositions(CCNode* globalListLabel, CCNode* globalListIcon, const std::unordered_map<CCNode*, float>& originalPositions, const bool forLevelCell) {
+void removeMyNodesAndRestorePositions(const int levelID, CCNode* globalListLabel, CCNode* globalListIcon, const std::unordered_map<CCNode*, float>& originalPositions, const bool forLevelCell) {
+    g_levelsWithoutPositions.push_back(levelID);
     if (globalListLabel) globalListLabel->removeMeAndCleanup();
     if (globalListIcon) globalListIcon->removeMeAndCleanup();
     if (forLevelCell) { for (auto& [node, xPos] : originalPositions) if (node) node->setPositionX(xPos); }
@@ -15,8 +16,9 @@ class $modify(MyLevelCell, LevelCell) {
         EventListener<web::WebTask> m_listener;
     };
 
-    void loadFromLevel(GJGameLevel * level) {
+    void loadFromLevel(GJGameLevel* level) {
         LevelCell::loadFromLevel(level);
+        if (!level || std::ranges::find(g_levelsWithoutPositions, level->m_levelID.value()) != g_levelsWithoutPositions.end()) return;
 
         auto levelCellMain = this->getChildByID("main-layer");
         auto infoLabel = levelCellMain->getChildByID("info-label");
@@ -113,7 +115,7 @@ class $modify(MyLevelCell, LevelCell) {
                 if (auto res = e->getValue()) {
                     if (!res->ok()) {
                         log::error("Request error: {}", res->code());
-                        removeMyNodesAndRestorePositions(globalListLabel, globalListIcon, originalPositions, true);
+                        removeMyNodesAndRestorePositions(levelID, globalListLabel, globalListIcon, originalPositions, true);
                     }
                     else {
                         auto data = res->json();
@@ -159,13 +161,13 @@ class $modify(MyLevelCell, LevelCell) {
                             globalListLabel->setString(globalListLabellStr.c_str());
                         }
                         else {
-                            removeMyNodesAndRestorePositions(globalListLabel, globalListIcon, originalPositions, true);
+                            removeMyNodesAndRestorePositions(levelID, globalListLabel, globalListIcon, originalPositions, true);
                         }
                     }
                 }
                 else if (e->isCancelled()) {
                     log::warn("Request is canceled");
-                    removeMyNodesAndRestorePositions(globalListLabel, globalListIcon, originalPositions, true);
+                    removeMyNodesAndRestorePositions(levelID, globalListLabel, globalListIcon, originalPositions, true);
                 }
             });
             auto task = req.get(url);
@@ -179,8 +181,9 @@ class $modify(MyLevelInfoLayer, LevelInfoLayer) {
         EventListener<web::WebTask> m_listener;
     };
 
-    bool init(GJGameLevel * level, bool challenge) {
+    bool init(GJGameLevel* level, bool challenge) {
         if (!LevelInfoLayer::init(level, challenge)) return false;
+        if (!level || std::ranges::find(g_levelsWithoutPositions, level->m_levelID.value()) != g_levelsWithoutPositions.end()) return true;
 
         if (level->m_demonDifficulty == int(DemonDifficultyType::ExtremeDemon) ||
             level->m_demonDifficulty == int(DemonDifficultyType::InsaneDemon) || (
@@ -263,7 +266,7 @@ class $modify(MyLevelInfoLayer, LevelInfoLayer) {
                 if (auto res = e->getValue()) {
                     if (!res->ok()) {
                         log::error("Request error: {}", res->code());
-                        removeMyNodesAndRestorePositions(globalListLabel, globalListIcon, originalPositions, false);
+                        removeMyNodesAndRestorePositions(levelID, globalListLabel, globalListIcon, originalPositions, false);
                     }
                     else {
                         auto data = res->json();
@@ -304,13 +307,13 @@ class $modify(MyLevelInfoLayer, LevelInfoLayer) {
                             globalListLabel->setString(fmt::format("#{}", place).c_str());
                         }
                         else {
-                            removeMyNodesAndRestorePositions(globalListLabel, globalListIcon, originalPositions, false);
+                            removeMyNodesAndRestorePositions(levelID, globalListLabel, globalListIcon, originalPositions, false);
                         }
                     }
                 }
                 else if (e->isCancelled()) {
                     log::warn("Request is canceled");
-                    removeMyNodesAndRestorePositions(globalListLabel, globalListIcon, originalPositions, false);
+                    removeMyNodesAndRestorePositions(levelID, globalListLabel, globalListIcon, originalPositions, false);
                 }
             });
             auto task = req.get(url);
