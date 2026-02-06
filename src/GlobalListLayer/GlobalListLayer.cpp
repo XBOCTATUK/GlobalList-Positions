@@ -248,7 +248,7 @@ void GlobalListLayer::populateList(const std::string& query) {
 
 	if (query.empty()) {
 		for (auto& level : m_levels) {
-			m_searchResults.push_back(level.levelID);
+			m_searchResults.push_back(std::to_string(level.levelID));
 		}
 	}
 	else {
@@ -256,7 +256,7 @@ void GlobalListLayer::populateList(const std::string& query) {
 		for (auto& level : m_levels) {
 			if (string::toLower(level.name).find(lowerQuery) == std::string::npos &&
 				std::to_string(level.levelID) != lowerQuery) continue;
-			m_searchResults.push_back(level.levelID);
+			m_searchResults.push_back(std::to_string(level.levelID));
 		}
 	}
 

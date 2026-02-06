@@ -56,7 +56,7 @@ protected:
 	int m_lvlsPerPage = 10;
 	std::string m_query;
 	std::string m_searchBarText;
-	std::vector<int> m_searchResults;
+	std::vector<std::string> m_searchResults;
 
 	
 
