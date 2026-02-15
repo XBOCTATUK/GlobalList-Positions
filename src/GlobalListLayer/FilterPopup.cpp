@@ -274,29 +274,21 @@ bool FilterPopup::init() {
 	
 	auto applyBtnSpr = ButtonSprite::create("Apply");
 	auto applyBtn = CCMenuItemExt::createSpriteExtra(applyBtnSpr, [this, usernameInput, holderInput](auto) {
-		if (!g_levelFilters.isDataRequired()) {
-			g_storedFilters = g_levelFilters;
-			auto scene = CCDirector::get()->getRunningScene();
-			auto globalListLayer = static_cast<GlobalListLayer*>(scene->getChildByID("GlobalListLayer"));
-			globalListLayer->showLoading();
-			globalListLayer->populateList("");
-			onClose(this);
-			return;
-		}
-
 		auto time = std::chrono::high_resolution_clock::now();
 		auto seconds = std::chrono::duration_cast<std::chrono::seconds>( time.time_since_epoch() );
 		int64_t timestamp = seconds.count();
 
 		int lastUpdate = Mod::get()->getSavedValue<int64_t>("lastLevelDataUpdate", 0);
 		int difference = timestamp - lastUpdate;
-		log::info("{}", difference);
-		if (lastUpdate != 0 && difference < 600) {
-			FLAlertLayer::create(
-				"Loading canceled",
-				fmt::format("Please wait <cj>{}min {}sec</c> for the level information to load. If you want to use filters right now, please use only the length and difficulty filters.", (600 - difference) / 60, (600 - difference) % 60),
-				"Ok"
-			)->show();
+
+		// log::info("{}", !g_levelFilters.isDataRequired() || (g_levelsData.empty() ? false : difference < 600));
+		if (!g_levelFilters.isDataRequired() || (g_levelsData.empty() ? false : difference < 600)) {
+			g_storedFilters = g_levelFilters;
+			auto scene = CCDirector::get()->getRunningScene();
+			auto globalListLayer = static_cast<GlobalListLayer*>(scene->getChildByID("GlobalListLayer"));
+			globalListLayer->showLoading();
+			globalListLayer->populateList("");
+			onClose(this);
 			return;
 		}
 
