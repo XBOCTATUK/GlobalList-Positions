@@ -14,8 +14,6 @@ void removePlacement(const int levelID, CCNode* gdlLabel, CCNode* gdlIcon, const
 class $modify(MyLevelCell, LevelCell) {
     struct Fields {
         TaskHolder<web::WebResponse> m_listener;
-        bool m_gapFlag = false;
-        float m_gap = 0.0f;
         std::unordered_map<CCNode*, float> m_origPositions;
     };
 
@@ -51,10 +49,10 @@ class $modify(MyLevelCell, LevelCell) {
             else gdlIconX = likesLabelPos + (downloadIconPos - lengthLabelPos);
 
             auto gdlIcon = CCSprite::create("global-list.png"_spr);
-            gdlIcon->setScale(0.45f);
+            gdlIcon->setScale(0.55f);
             gdlIcon->setContentSize({ 23.5f, 23.5f });
             gdlIcon->setAnchorPoint({ 0.5f, 0.5f });
-            gdlIcon->setPosition({ gdlIconX + gdlIcon->getContentWidth() * 0.45f / 2.0f, 13.0f });
+            gdlIcon->setPosition({ gdlIconX + gdlIcon->getContentWidth() * 0.45f / 2.0f, 14.0f });
             gdlIcon->refreshTextureRect();
             gdlIcon->setID("gdl-icon"_spr);
             levelCellMain->addChild(gdlIcon);
@@ -68,8 +66,6 @@ class $modify(MyLevelCell, LevelCell) {
             gdlLabel->setID("gdl-label"_spr);
             levelCellMain->addChild(gdlLabel);
 
-            m_fields->m_gap = (likesIcon->getPositionX() - likesIcon->getContentWidth() * likesIcon->getScaleX() / 2.0f) -
-                (downloadLabel->getContentWidth() * downloadLabel->getScaleX() + downloadLabel->getPositionX());
             std::unordered_map<CCNode*, float>& origPositions = m_fields->m_origPositions;
 
             if (this->m_compactView) {
@@ -78,9 +74,8 @@ class $modify(MyLevelCell, LevelCell) {
                 gdlLabel->setScale(0.3f);
                 gdlLabel->setPosition(gdlLabel->getPositionX() - 2.0f, 8.5f);
             }
-            else if (gdlLabel->getPositionX() > 310.0f) {
-                m_fields->m_gapFlag = true;
-                float gap = m_fields->m_gap;
+            else if (gdlLabel->getPositionX() + 50.0f > 356.0f) {
+                float gap = ((gdlLabel->getPositionX() + 50.0f) - 356.0f) / (orbIcon ? 4.0f : 3.0f);
 
                 origPositions[downloadIcon] = downloadIcon->getPositionX();
                 origPositions[downloadLabel] = downloadLabel->getPositionX();
@@ -90,17 +85,17 @@ class $modify(MyLevelCell, LevelCell) {
                 if (orbLabel) origPositions[orbLabel] = orbLabel->getPositionX();
                 origPositions[gdlIcon] = gdlIcon->getPositionX();
                 origPositions[gdlLabel] = gdlLabel->getPositionX();
-                downloadIcon->setPositionX(downloadIcon->getPositionX() - gap * 0.6f);
-                downloadLabel->setPositionX(downloadLabel->getPositionX() - gap * 0.6f);
-                likesIcon->setPositionX(likesIcon->getPositionX() - gap * 1.2f);
-                likesLabel->setPositionX(likesLabel->getPositionX() - gap * 1.2f);
-                if (orbIcon) orbIcon->setPositionX(orbIcon->getPositionX() - gap * 1.8f);
-                if (orbLabel) orbLabel->setPositionX(orbLabel->getPositionX() - gap * 1.8f);
-                gdlIcon->setPositionX(gdlIcon->getPositionX() - gap * 2.4f);
-                gdlLabel->setPositionX(gdlLabel->getPositionX() - gap * 2.4f);
+                downloadIcon->setPositionX(downloadIcon->getPositionX() - gap);
+                downloadLabel->setPositionX(downloadLabel->getPositionX() - gap);
+                likesIcon->setPositionX(likesIcon->getPositionX() - gap * 2.0f);
+                likesLabel->setPositionX(likesLabel->getPositionX() - gap * 2.0f);
+                if (orbIcon) orbIcon->setPositionX(orbIcon->getPositionX() - gap * 3.0f);
+                if (orbLabel) orbLabel->setPositionX(orbLabel->getPositionX() - gap * 3.0f);
+                gdlIcon->setPositionX(gdlIcon->getPositionX() - gap * (orbIcon ? 4.0f : 3.0f));
+                gdlLabel->setPositionX(gdlLabel->getPositionX() - gap * (orbIcon ? 4.0f : 3.0f));
             }
 
-            getPlacement(level->m_levelID);
+            getPlacement(level->m_levelID.value());
         }
     }
 
@@ -110,18 +105,19 @@ class $modify(MyLevelCell, LevelCell) {
             updatePlacement(placement);
         }
         else {
+            log::info("https://api.demonlist.org/level/classic/get?ingame_id={}", levelID);
             m_fields->m_listener.spawn(web::WebRequest().get(fmt::format("https://api.demonlist.org/level/classic/get?ingame_id={}", levelID)),
             [this, levelID](web::WebResponse value) {
-                int placement = 0;
+                int placement = -1;
                 if (!value.ok()) {
-                    if (value.code() == -1) placement = -1;
-                    else if (value.code() == 404) placement = 0;
+                    if (value.code() == 404) placement = 0;
+                    else placement = -1;
                 }
                 else {
                     auto data = value.json();
-                    matjson::Value json = data.ok().value();
+                    auto json = data.ok().value();
 
-                    const matjson::Value levelData = json["data"];
+                    auto levelData = json["data"];
 
                     placement = levelData["placement"].asInt().ok().value();
 
@@ -217,7 +213,7 @@ class $modify(MyLevelInfoLayer, LevelInfoLayer) {
             gdlLabel->setID("gdl-label"_spr);
             this->addChild(gdlLabel);
 
-            getPlacement(level->m_levelID);
+            getPlacement(level->m_levelID.value());
         }
 
         return true;
