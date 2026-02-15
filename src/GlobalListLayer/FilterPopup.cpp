@@ -11,9 +11,9 @@ FilterPopup* FilterPopup::create() {
 }
 
 constexpr const char* filterWarning =
-"Many features in this filter request data from RobTop servers. The game's servers automatically set usage limits."
+"Many features in this filter request data from <cy>RobTop servers</c>. The game's servers automatically set usage limits."
 "To avoid a temporary ban(up to 1 hour), please avoid updating too frequently."
-"Click \"I confirm\" to continue, confirming your understanding of this limitation.";
+"Click <cr>I confirm</c> to continue, confirming your understanding of this limitation.";
 
 bool FilterPopup::init() {
 	if (!Popup::init(450.0f, 280.0f)) return false;
@@ -281,6 +281,22 @@ bool FilterPopup::init() {
 			globalListLayer->showLoading();
 			globalListLayer->populateList("");
 			onClose(this);
+			return;
+		}
+
+		auto time = std::chrono::high_resolution_clock::now();
+		auto seconds = std::chrono::duration_cast<std::chrono::seconds>( time.time_since_epoch() );
+		int64_t timestamp = seconds.count();
+
+		int lastUpdate = Mod::get()->getSavedValue<int64_t>("lastLevelDataUpdate", 0);
+		int difference = timestamp - lastUpdate;
+		log::info("{}", difference);
+		if (lastUpdate != 0 && difference < 600) {
+			FLAlertLayer::create(
+				"Loading canceled",
+				fmt::format("Please wait <cj>{}min {}sec</c> for the level information to load. If you want to use filters right now, please use only the length and difficulty filters.", (600 - difference) / 60, (600 - difference) % 60),
+				"Ok"
+			)->show();
 			return;
 		}
 
