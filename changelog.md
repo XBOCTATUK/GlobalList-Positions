@@ -1,3 +1,9 @@
+# 2.0.0
+- Ported to <cy>GD</c> 2.2081 (<cd>Geode</c> v5.0.0).
+- Added <cy>Filters Menu</c> for in-game demonlist.
+- <cr>Mass</c> code refactor (Thanks to <cp>Erymanthus</c> for some tips).
+- And other minor improvements.
+
 # 1.1.7
 - The mod now uses the new Global Demonlist API.
 - Minor code improvement.

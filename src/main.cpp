@@ -2,23 +2,34 @@
 #include <Geode/modify/LevelCell.hpp>
 #include <Geode/modify/LevelInfoLayer.hpp>
 #include <Geode/modify/LevelSearchLayer.hpp>
+#include <Geode/modify/CCContentLayer.hpp>
 
-class $modify(LevelCell) {
+void removePlacement(const int levelID, CCNode* gdlLabel, CCNode* gdlIcon, const std::unordered_map<CCNode*, float> origPositions, const bool onLevelCell) {
+    g_levelsWithoutPlacement[levelID] = true;
+    if (gdlLabel) gdlLabel->setVisible(false);
+    if (gdlIcon) gdlIcon->setVisible(false);
+    for (auto& [node, pos] : origPositions) if (node) onLevelCell ? node->setPositionX(pos) : node->setPositionY(pos);
+}
+
+class $modify(MyLevelCell, LevelCell) {
     struct Fields {
-        EventListener<web::WebTask> m_listener;
+        TaskHolder<web::WebResponse> m_listener;
+        bool m_gapFlag = false;
+        float m_gap = 0.0f;
+        std::unordered_map<CCNode*, float> m_origPositions;
     };
 
-    void loadFromLevel(GJGameLevel * level) {
+    void loadFromLevel(GJGameLevel* level) {
         LevelCell::loadFromLevel(level);
-        auto compactLists = Loader::get()->getLoadedMod("cvolton.compact_lists");
+        if (!level || level->m_levelType == GJLevelType::Main || level->m_levelType == GJLevelType::Editor || g_levelsWithoutPlacement.contains(level->m_levelID.value())) return;
 
-        auto levelCellMain = this->getChildByID("main-layer");
-        auto infoLabel = levelCellMain->getChildByID("info-label");
+        auto levelCellMain = this->m_mainLayer;
 
-        if ( !infoLabel && (level->m_demonDifficulty == int(DemonDifficultyType::ExtremeDemon) ||
-            level->m_demonDifficulty == int(DemonDifficultyType::InsaneDemon) ||
-            (level->getAverageDifficulty() == int(GJDifficulty::Insane) && level->m_stars == 0))) {
-            
+        bool isDemon =
+            level->m_demonDifficulty == static_cast<int>(DemonDifficultyType::ExtremeDemon) ||
+            level->m_demonDifficulty == static_cast<int>(DemonDifficultyType::InsaneDemon);
+
+        if (isDemon || level->m_stars == 0) {
             auto downloadIcon = levelCellMain->getChildByID("downloads-icon");
             auto downloadLabel = levelCellMain->getChildByID("downloads-label");
             auto likesIcon = levelCellMain->getChildByID("likes-icon");
@@ -28,287 +39,236 @@ class $modify(LevelCell) {
             auto orbIcon = levelCellMain->getChildByID("orbs-icon");
             auto orbLabel = levelCellMain->getChildByID("orbs-label");
 
-            float globalListIconX = 0.0f;
-            if (orbLabel)
-                globalListIconX = orbLabel->getScaleX() * orbLabel->getContentWidth() + orbLabel->getPositionX() +
-                (downloadIcon->getPositionX() - downloadIcon->getContentWidth() * downloadIcon->getScaleX() / 2.0f -
-                    lengthLabel->getContentWidth() * lengthLabel->getScaleX() - lengthLabel->getPositionX());
-            else
-                globalListIconX = likesLabel->getScaleX() * likesLabel->getContentWidth() + likesLabel->getPositionX() +
-                (downloadIcon->getPositionX() - downloadIcon->getContentWidth() * downloadIcon->getScaleX() / 2.0f -
-                    lengthLabel->getContentWidth() * lengthLabel->getScaleX() - lengthLabel->getPositionX());
+            float gdlIconX = 0.0f;
+            float downloadIconPos = downloadIcon->getPositionX() - downloadIcon->getContentWidth() * downloadIcon->getScaleX() / 2.0f;
+            float lengthLabelPos = lengthLabel->getPositionX() + lengthLabel->getContentWidth() * lengthLabel->getScaleX();
+            float likesLabelPos = likesLabel->getScaleX() * likesLabel->getContentWidth() + likesLabel->getPositionX();
 
-            auto globalListIcon = CCSprite::create("global-list.png"_spr);
-            globalListIcon->setScale(0.45f);
-            globalListIcon->setContentSize({ 23.5f, 23.5f });
-            globalListIcon->setAnchorPoint({ 0.5f, 0.5f });
-            globalListIcon->setPosition({ globalListIconX + globalListIcon->getContentWidth() * 0.45f / 2.0f, 13.0f});
-            globalListIcon->refreshTextureRect();
-            globalListIcon->setID("global-list-icon"_spr);
-            levelCellMain->addChild(globalListIcon);
-
-            float globalListLabelX = globalListIconX + globalListIcon->getContentWidth() / 2 + 3.0f;
-
-            auto globalListLabel = CCLabelBMFont::create("...", "bigFont.fnt");
-            globalListLabel->setScale(0.4f);
-            globalListLabel->setAnchorPoint({ 0.0f, 0.5f });
-            globalListLabel->setPosition({ globalListLabelX, 14.0f });
-            globalListLabel->setID("global-list-label"_spr);
-            levelCellMain->addChild(globalListLabel);
-
-            float gap = (likesIcon->getPositionX() - likesIcon->getContentWidth() * likesIcon->getScaleX() / 2.0f) -
-                (downloadLabel->getContentWidth() * downloadLabel->getScaleX() + downloadLabel->getPositionX());
-            bool gapFlag = false;
-            
-            if (compactLists && compactLists->isEnabled() && compactLists->getSettingValue<bool>("enable-compact-lists")) {
-                globalListIcon->setScale(0.3f);
-                globalListIcon->setPositionY(8.5f);
-                globalListLabel->setScale(0.3f);
-                globalListLabel->setPosition(globalListLabel->getPositionX() - 2.0f, 8.5f);
+            if (orbLabel) {
+                float orbLabelPos = orbLabel->getScaleX() * orbLabel->getContentWidth() + orbLabel->getPositionX();
+                gdlIconX = orbLabelPos + (downloadIconPos - lengthLabelPos);
             }
-            else if (globalListLabel->getPositionX() > 310.0f) {
-                gapFlag = true;
+            else gdlIconX = likesLabelPos + (downloadIconPos - lengthLabelPos);
+
+            auto gdlIcon = CCSprite::create("global-list.png"_spr);
+            gdlIcon->setScale(0.45f);
+            gdlIcon->setContentSize({ 23.5f, 23.5f });
+            gdlIcon->setAnchorPoint({ 0.5f, 0.5f });
+            gdlIcon->setPosition({ gdlIconX + gdlIcon->getContentWidth() * 0.45f / 2.0f, 13.0f });
+            gdlIcon->refreshTextureRect();
+            gdlIcon->setID("gdl-icon"_spr);
+            levelCellMain->addChild(gdlIcon);
+
+            float gdlLabelX = gdlIconX + gdlIcon->getContentWidth() / 2 + 3.0f;
+
+            auto gdlLabel = CCLabelBMFont::create("...", "bigFont.fnt");
+            gdlLabel->setScale(0.4f);
+            gdlLabel->setAnchorPoint({ 0.0f, 0.5f });
+            gdlLabel->setPosition({ gdlLabelX, 14.0f });
+            gdlLabel->setID("gdl-label"_spr);
+            levelCellMain->addChild(gdlLabel);
+
+            m_fields->m_gap = (likesIcon->getPositionX() - likesIcon->getContentWidth() * likesIcon->getScaleX() / 2.0f) -
+                (downloadLabel->getContentWidth() * downloadLabel->getScaleX() + downloadLabel->getPositionX());
+            std::unordered_map<CCNode*, float>& origPositions = m_fields->m_origPositions;
+
+            if (this->m_compactView) {
+                gdlIcon->setScale(0.3f);
+                gdlIcon->setPositionY(8.5f);
+                gdlLabel->setScale(0.3f);
+                gdlLabel->setPosition(gdlLabel->getPositionX() - 2.0f, 8.5f);
+            }
+            else if (gdlLabel->getPositionX() > 310.0f) {
+                m_fields->m_gapFlag = true;
+                float gap = m_fields->m_gap;
+
+                origPositions[downloadIcon] = downloadIcon->getPositionX();
+                origPositions[downloadLabel] = downloadLabel->getPositionX();
+                origPositions[likesIcon] = likesIcon->getPositionX();
+                origPositions[likesLabel] = likesLabel->getPositionX();
+                if (orbIcon) origPositions[orbIcon] = orbIcon->getPositionX();
+                if (orbLabel) origPositions[orbLabel] = orbLabel->getPositionX();
+                origPositions[gdlIcon] = gdlIcon->getPositionX();
+                origPositions[gdlLabel] = gdlLabel->getPositionX();
                 downloadIcon->setPositionX(downloadIcon->getPositionX() - gap * 0.6f);
                 downloadLabel->setPositionX(downloadLabel->getPositionX() - gap * 0.6f);
                 likesIcon->setPositionX(likesIcon->getPositionX() - gap * 1.2f);
                 likesLabel->setPositionX(likesLabel->getPositionX() - gap * 1.2f);
-                orbIcon->setPositionX(orbIcon->getPositionX() - gap * 1.8f);
-                orbLabel->setPositionX(orbLabel->getPositionX() - gap * 1.8f);
-                globalListIcon->setPositionX(globalListIcon->getPositionX() - gap * 2.4f);
-                globalListLabel->setPositionX(globalListLabel->getPositionX() - gap * 2.4f);
+                if (orbIcon) orbIcon->setPositionX(orbIcon->getPositionX() - gap * 1.8f);
+                if (orbLabel) orbLabel->setPositionX(orbLabel->getPositionX() - gap * 1.8f);
+                gdlIcon->setPositionX(gdlIcon->getPositionX() - gap * 2.4f);
+                gdlLabel->setPositionX(gdlLabel->getPositionX() - gap * 2.4f);
             }
 
-            getPos(gap, gapFlag);
+            getPlacement(level->m_levelID);
         }
     }
 
-    void getPos(float gap, bool gapFlag) {
-        int levelID = m_level->m_levelID.value();
-        auto globalListIcon = static_cast<CCLabelBMFont*>(this->getChildByIDRecursive("global-list-icon"_spr));
-        auto globalListLabel = static_cast<CCLabelBMFont*>(this->getChildByIDRecursive("global-list-label"_spr));
-        auto levelCellMain = this->getChildByID("main-layer");
-        auto downloadIcon = levelCellMain->getChildByID("downloads-icon");
-        auto downloadLabel = levelCellMain->getChildByID("downloads-label");
-        auto likesIcon = levelCellMain->getChildByID("likes-icon");
-        auto likesLabel = levelCellMain->getChildByID("likes-label");
-        auto lengthIcon = levelCellMain->getChildByID("length-icon");
-        auto lengthLabel = levelCellMain->getChildByID("length-label");
-        auto orbIcon = levelCellMain->getChildByID("orbs-icon");
-        auto orbLabel = levelCellMain->getChildByID("orbs-label");
-
-        if (g_positionsCache.contains(std::to_string(levelID))) {
-            int place = g_positionsCache[std::to_string(levelID)];
-            std::string globalListLabellStr = "#" + std::to_string(place);
-            globalListLabel->setString(globalListLabellStr.c_str());
+    void getPlacement(int levelID) {
+        if (g_placementsCache.contains(levelID)) {
+            int placement = g_placementsCache[levelID];
+            updatePlacement(placement);
         }
         else {
-            std::string url = "https://api.demonlist.org/level/classic/get?ingame_id=" + std::to_string(levelID);
-            auto req = web::WebRequest();
-            m_fields->m_listener.bind([levelID, globalListIcon, globalListLabel, gap, gapFlag, this](web::WebTask::Event* e) {
-                if (auto res = e->getValue()) {
-                    if (!res->ok()) {
-                        log::error("Request error: {}", res->code());
-                        globalListLabel->setString("N/A");
-                    }
-                    else {
-                        auto data = res->json();
-                        matjson::Value json = data.ok().value();
-
-                        if (!json.contains("data") || !json["data"].isObject() || json["data"].size() == 0) {
-                            globalListIcon->setVisible(false);
-                            globalListLabel->setVisible(false);
-
-                            if (gapFlag) {
-                                auto levelCellMain = this->getChildByID("main-layer");
-                                auto downloadIcon = levelCellMain->getChildByID("downloads-icon");
-                                auto downloadLabel = levelCellMain->getChildByID("downloads-label");
-                                auto likesIcon = levelCellMain->getChildByID("likes-icon");
-                                auto likesLabel = levelCellMain->getChildByID("likes-label");
-                                auto orbIcon = levelCellMain->getChildByID("orbs-icon");
-                                auto orbLabel = levelCellMain->getChildByID("orbs-label");
-
-                                downloadIcon->setPositionX(downloadIcon->getPositionX() + gap * 0.6f);
-                                downloadLabel->setPositionX(downloadLabel->getPositionX() + gap * 0.6f);
-                                likesIcon->setPositionX(likesIcon->getPositionX() + gap * 1.2f);
-                                likesLabel->setPositionX(likesLabel->getPositionX() + gap * 1.2f);
-                                if (orbIcon) {
-                                    orbIcon->setPositionX(orbIcon->getPositionX() + gap * 1.8f);
-                                    orbLabel->setPositionX(orbLabel->getPositionX() + gap * 1.8f);
-                                    globalListIcon->setPositionX(globalListIcon->getPositionX() + gap * 2.4f);
-                                    globalListLabel->setPositionX(globalListLabel->getPositionX() + gap * 2.4f);
-                                }
-                                globalListIcon->setPositionX(globalListIcon->getPositionX() + gap * 1.8f);
-                                globalListLabel->setPositionX(globalListLabel->getPositionX() + gap * 1.8f);
-                            }
-
-                            return;
-                        }
-                        const matjson::Value levelData = json["data"];
-
-                        int place = levelData["placement"].asInt().ok().value();
-
-                        if (place != 0) {
-                            g_positionsCache[std::to_string(levelID)] = place;
-
-                            std::string globalListLabellStr = "#" + std::to_string(place);
-                            globalListLabel->setString(globalListLabellStr.c_str());
-                        }
-                        else {
-                            globalListLabel->setString("N/A");
-                        }
-                    }
+            m_fields->m_listener.spawn(web::WebRequest().get(fmt::format("https://api.demonlist.org/level/classic/get?ingame_id={}", levelID)),
+            [this, levelID](web::WebResponse value) {
+                int placement = 0;
+                if (!value.ok()) {
+                    if (value.code() == -1) placement = -1;
+                    else if (value.code() == 404) placement = 0;
                 }
-                else if (e->isCancelled()) {
-                    log::warn("Request is canceled");
-                    globalListLabel->setString("N/A");
+                else {
+                    auto data = value.json();
+                    matjson::Value json = data.ok().value();
+
+                    const matjson::Value levelData = json["data"];
+
+                    placement = levelData["placement"].asInt().ok().value();
+
+                    if (placement > 0) {
+                        g_placementsCache[levelID] = placement;
+                    }
+                    else placement = -1;
                 }
-                });
-            auto task = req.get(url);
-            m_fields->m_listener.setFilter(task);
+
+                updatePlacement(placement);
+            });
+        }
+    }
+
+    void updatePlacement(int placement) {
+        auto levelCellMain = this->m_mainLayer;
+        if (!levelCellMain) return;
+
+        if (auto gdlLabel = static_cast<CCLabelBMFont*>(levelCellMain->getChildByID("gdl-label"_spr))) {
+            auto gdlIcon = levelCellMain->getChildByID("gdl-icon"_spr);
+
+            if (placement == -1) gdlLabel->setString("N/A");
+            else if (placement > 0) gdlLabel->setString(fmt::format("#{}", placement).c_str());
+            else removePlacement(m_level->m_levelID, gdlLabel, gdlIcon, m_fields->m_origPositions, true);
         }
     }
 };
 
-class $modify(LevelInfoLayer) {
+class $modify(MyLevelInfoLayer, LevelInfoLayer) {
     struct Fields {
-        EventListener<web::WebTask> m_listener;
+        TaskHolder<web::WebResponse> m_listener;
+        std::unordered_map<CCNode*, float> m_origPositions;
     };
 
-    bool init(GJGameLevel * level, bool challenge) {
+    bool init(GJGameLevel* level, bool challenge) {
         if (!LevelInfoLayer::init(level, challenge)) return false;
+        if (!level || level->m_levelType == GJLevelType::Main || level->m_levelType == GJLevelType::Editor || g_levelsWithoutPlacement.contains(level->m_levelID.value())) return true;
 
-        if (level->m_demonDifficulty == int(DemonDifficultyType::ExtremeDemon) ||
-            level->m_demonDifficulty == int(DemonDifficultyType::InsaneDemon) || (
-                level->getAverageDifficulty() == int(GJDifficulty::Insane) && level->m_stars == 0)) {
-            float globalListIconY = 0.0f;
+        bool isDemon =
+            level->m_demonDifficulty == static_cast<int>(DemonDifficultyType::ExtremeDemon) ||
+            level->m_demonDifficulty == static_cast<int>(DemonDifficultyType::InsaneDemon);
 
+        std::unordered_map<CCNode*, float>& origPositions = m_fields->m_origPositions;
+        if (isDemon || level->m_stars == 0) {
             auto downloadIcon = this->getChildByID("downloads-icon");
-            auto downloadLabel = this->getChildByID("downloads-label");
-            auto likesIcon = this->getChildByID("likes-icon");
-            auto likesLabel = this->getChildByID("likes-label");
+            auto downloadLabel = this->m_downloadsLabel;
+            auto likesIcon = this->m_likesIcon;
+            auto likesLabel = this->m_likesLabel;
             auto lengthIcon = this->getChildByID("length-icon");
-            auto lengthLabel = this->getChildByID("length-label");
+            auto lengthLabel = this->m_lengthLabel;
             auto exactLengthLabel = this->getChildByID("exact-length-label");
-            auto orbIcon = this->getChildByID("orbs-icon");
-            auto orbLabel = this->getChildByID("orbs-label");
+            auto orbIcon = this->m_orbsIcon;
+            auto orbLabel = this->m_orbsLabel;
 
+            origPositions[downloadIcon] = downloadIcon->getPositionY();
+            origPositions[downloadLabel] = downloadLabel->getPositionY();
+            origPositions[likesIcon] = likesIcon->getPositionY();
+            origPositions[likesLabel] = likesLabel->getPositionY();
+            origPositions[lengthIcon] = lengthIcon->getPositionY();
+            origPositions[lengthLabel] = lengthLabel->getPositionY();
+            origPositions[exactLengthLabel] = exactLengthLabel->getPositionY();
+            origPositions[orbIcon] = orbIcon->getPositionY();
+            origPositions[orbLabel] = orbLabel->getPositionY();
             downloadIcon->setPositionY(downloadIcon->getPositionY() + 14.0f);
             downloadLabel->setPositionY(downloadLabel->getPositionY() + 14.0f);
             likesIcon->setPositionY(likesIcon->getPositionY() + 14.0f);
             likesLabel->setPositionY(likesLabel->getPositionY() + 14.0f);
             lengthIcon->setPositionY(lengthIcon->getPositionY() + 14.0f);
             lengthLabel->setPositionY(lengthLabel->getPositionY() + 14.0f);
-            exactLengthLabel->setPositionY(exactLengthLabel->getPositionY() + 14.0f);
+            if (exactLengthLabel) exactLengthLabel->setPositionY(exactLengthLabel->getPositionY() + 14.0f);
             orbIcon->setPositionY(orbIcon->getPositionY() + 14.0f);
             orbLabel->setPositionY(orbLabel->getPositionY() + 14.0f);
 
-            if (orbIcon->isVisible())
-                globalListIconY = orbIcon->getPositionY() - (lengthIcon->getPositionY() - orbIcon->getPositionY());
-            else
-                globalListIconY = lengthIcon->getPositionY() - (likesIcon->getPositionY() - lengthIcon->getPositionY());
+            float gdlIconY = 0.0f;
+            if (orbIcon->isVisible()) gdlIconY = orbIcon->getPositionY() - (lengthIcon->getPositionY() - orbIcon->getPositionY());
+            else gdlIconY = lengthIcon->getPositionY() - (likesIcon->getPositionY() - lengthIcon->getPositionY());
 
-            float globalListIconX = lengthIcon->getPositionX() + lengthIcon->getContentWidth() / 2.0f;
+            float gdlIconX = lengthIcon->getPositionX() + lengthIcon->getContentWidth() / 2.0f;
 
-            auto globalListIcon = CCSprite::create("global-list.png"_spr);
-            globalListIcon->setContentSize({ 23.5f, 23.5f });
-            globalListIcon->setScale(0.85f);
-            globalListIcon->setAnchorPoint({ 0.5f, 0.5f });
-            globalListIcon->setPosition({ globalListIconX, globalListIconY });
-            globalListIcon->refreshTextureRect();
-            globalListIcon->setID("global-list-icon"_spr);
-            this->addChild(globalListIcon);
+            auto gdlIcon = CCSprite::create("global-list.png"_spr);
+            gdlIcon->setContentSize({ 23.5f, 23.5f });
+            gdlIcon->setScale(0.85f);
+            gdlIcon->setAnchorPoint({ 0.5f, 0.5f });
+            gdlIcon->setPosition({ gdlIconX, gdlIconY });
+            gdlIcon->refreshTextureRect();
+            gdlIcon->setID("gdl-icon"_spr);
+            this->addChild(gdlIcon);
 
-            auto globalListLabel = CCLabelBMFont::create("...", "bigFont.fnt");
-            globalListLabel->setScale(0.5f);
-            globalListLabel->setAnchorPoint({ 0.0f, 0.5f });
-            globalListLabel->setPosition({ lengthLabel->getPositionX(), globalListIconY });
-            globalListLabel->setID("global-list-label"_spr);
-            this->addChild(globalListLabel);
+            auto gdlLabel = CCLabelBMFont::create("...", "bigFont.fnt");
+            gdlLabel->setScale(0.5f);
+            gdlLabel->setAnchorPoint({ 0.0f, 0.5f });
+            gdlLabel->setPosition({ lengthLabel->getPositionX(), gdlIconY });
+            gdlLabel->setID("gdl-label"_spr);
+            this->addChild(gdlLabel);
 
-            getPos();
+            getPlacement(level->m_levelID);
         }
 
         return true;
     }
 
-    void getPos() {
-        int levelID = m_level->m_levelID.value();
-        auto globalListIcon = static_cast<CCLabelBMFont*>(this->getChildByIDRecursive("global-list-icon"_spr));
-        auto globalListLabel = static_cast<CCLabelBMFont*>(this->getChildByIDRecursive("global-list-label"_spr));
-
-        if (g_positionsCache.contains(std::to_string(levelID))) {
-            int place = g_positionsCache[std::to_string(levelID)];
-            std::string globalListLabellStr = "#" + std::to_string(place);
-            globalListLabel->setString(globalListLabellStr.c_str());
+    void getPlacement(int levelID) {
+        if (g_placementsCache.contains(levelID)) {
+            int placement = g_placementsCache[levelID];
+            updatePlacement(placement);
         }
         else {
-            std::string url = "https://api.demonlist.org/level/classic/get?ingame_id=" + std::to_string(levelID);
-            auto req = web::WebRequest();
-            m_fields->m_listener.bind([levelID, globalListIcon, globalListLabel, this](web::WebTask::Event* e) {
-                if (auto res = e->getValue()) {
-                    if (!res->ok()) {
-                        log::error("Request error: {}", res->code());
-                        globalListLabel->setString("N/A");
-                    }
-                    else {
-                        auto data = res->json();
-                        matjson::Value json = data.unwrapOr(matjson::Value::object());
-
-                        if (!json.contains("data") || !json["data"].isObject() || json["data"].size() == 0) {
-                            globalListIcon->setVisible(false);
-                            globalListLabel->setVisible(false);
-
-                            auto downloadIcon = this->getChildByID("downloads-icon");
-                            auto downloadLabel = this->getChildByID("downloads-label");
-                            auto likesIcon = this->getChildByID("likes-icon");
-                            auto likesLabel = this->getChildByID("likes-label");
-                            auto lengthIcon = this->getChildByID("length-icon");
-                            auto lengthLabel = this->getChildByID("length-label");
-                            auto exactLengthLabel = this->getChildByID("exact-length-label");
-                            auto orbIcon = this->getChildByID("orbs-icon");
-                            auto orbLabel = this->getChildByID("orbs-label");
-
-                            downloadIcon->setPositionY(downloadIcon->getPositionY() - 14.0f);
-                            downloadLabel->setPositionY(downloadLabel->getPositionY() - 14.0f);
-                            likesIcon->setPositionY(likesIcon->getPositionY() - 14.0f);
-                            likesLabel->setPositionY(likesLabel->getPositionY() - 14.0f);
-                            lengthIcon->setPositionY(lengthIcon->getPositionY() - 14.0f);
-                            lengthLabel->setPositionY(lengthLabel->getPositionY() - 14.0f);
-                            exactLengthLabel->setPositionY(exactLengthLabel->getPositionY() - 14.0f);
-                            orbIcon->setPositionY(orbIcon->getPositionY() - 14.0f);
-                            orbLabel->setPositionY(orbLabel->getPositionY() - 14.0f);
-
-                            return;
-                        }
-                        const matjson::Value& levelData = json["data"];
-
-                        int place = levelData["placement"].asInt().ok().value();
-
-                        if (place != 0) {
-                            g_positionsCache[std::to_string(levelID)] = place;
-
-                            std::string globalListLabellStr = "#" + std::to_string(place);
-                            globalListLabel->setString(globalListLabellStr.c_str());
-                        }
-                        else {
-                            globalListLabel->setString("N/A");
-                        }
-                    }
+            m_fields->m_listener.spawn(web::WebRequest().get(fmt::format("https://api.demonlist.org/level/classic/get?ingame_id={}", levelID)),
+            [this, levelID](web::WebResponse value) {
+                int placement = 0;
+                if (!value.ok()) {
+                    if (value.code() == -1) placement = -1;
+                    else if (value.code() == 404) placement = 0;
                 }
-                else if (e->isCancelled()) {
-                    log::warn("Request is canceled");
-                    globalListLabel->setString("N/A");
+                else {
+                    auto data = value.json();
+                    matjson::Value json = data.ok().value();
+
+                    const matjson::Value levelData = json["data"];
+
+                    placement = levelData["placement"].asInt().ok().value();
+
+                    if (placement > 0) {
+                        g_placementsCache[levelID] = placement;
+                    }
+                    else placement = -1;
                 }
-                });
-            auto task = req.get(url);
-            m_fields->m_listener.setFilter(task);
+
+                updatePlacement(placement);
+            });
+        }
+    }
+
+    void updatePlacement(int placement) {
+        if (auto gdlLabel = static_cast<CCLabelBMFont*>(this->getChildByID("gdl-label"_spr))) {
+            auto gdlIcon = this->getChildByID("gdl-icon"_spr);
+
+            if (placement == -1) gdlLabel->setString("N/A");
+            else if (placement > 0) gdlLabel->setString(fmt::format("#{}", placement).c_str());
+            else removePlacement(m_level->m_levelID, gdlLabel, gdlIcon, m_fields->m_origPositions, false);
         }
     }
 };
 
 class $modify(MyLevelSearchLayer, LevelSearchLayer) {
-    bool init(int p0) {
-        if (!LevelSearchLayer::init(p0)) return false;
+    bool init(int type) {
+        if (!LevelSearchLayer::init(type)) return false;
 
         auto filterMenu = this->getChildByID("other-filter-menu");
 
