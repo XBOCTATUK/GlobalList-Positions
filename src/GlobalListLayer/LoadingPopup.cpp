@@ -65,12 +65,12 @@ void LoadingPopup::getLevels() {
 	else if (m_requiredLevels.size() != 0) {
 		m_loading = true;
 		m_currentBatch = 0;
-		loadBatch();
+		loadBatch(0.0f);
 	}
 	else afterLoading();
 }
 
-void LoadingPopup::loadBatch() {
+void LoadingPopup::loadBatch(float) {
 	if (!m_loading) return;
 
 	size_t begin = m_currentBatch * 100;
@@ -174,7 +174,7 @@ void LoadingPopup::loadPlayerRecords(int id, std::string username) {
 		if (m_requiredLevels.size() != 0) {
 			m_loading = true;
 			m_currentBatch = 0;
-			loadBatch();
+			loadBatch(0.0f);
 		}
 		else afterLoading();
 	});
@@ -194,7 +194,7 @@ void LoadingPopup::loadLevelsFinished(CCArray* levels, char const* key) {
 	}
 
 	m_currentBatch++;
-	this->schedule(schedule_selector(LoadingPopup::loadBatch), 1.0f);
+	this->schedule(static_cast<cocos2d::SEL_SCHEDULE>(&LoadingPopup::loadBatch), 1.0f);
 }
 
 void LoadingPopup::loadLevelsFailed(char const* key) {

@@ -146,7 +146,7 @@ protected:
 
 	bool init();
 	void getLevels();
-	void loadBatch();
+	void loadBatch(float);
 	void afterLoading();
 	void loadPlayerInfo(std::string username);
 	void loadPlayerRecords(int id, std::string username);
