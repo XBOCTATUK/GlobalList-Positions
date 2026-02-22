@@ -397,15 +397,15 @@ bool GlobalListLayer::isSuitable(GlobalListLevel level) {
 	else if (level.length >= 120) levelLength = 3;
 	if (g_storedFilters.lengthFilter[4] && (g_storedFilters.customLengthFilter[0] != 0 ? level.length >= g_storedFilters.customLengthFilter[0] : true) && (g_storedFilters.customLengthFilter[1] != 0 ? level.length <= g_storedFilters.customLengthFilter[1] : true)) levelLength = 4;
 
-	int levelDiff = 0;
-	if (level.placement <= 50) levelDiff = 0;
-	if (level.placement <= 150) levelDiff = 1;
-	if (level.placement <= 300) levelDiff = 2;
-	if (level.placement > 300) levelDiff = 3;
-	if (g_storedFilters.diffFilter[4] && (g_storedFilters.customDiffFilter[0] != 0 ? level.placement > g_storedFilters.customDiffFilter[0] : true) && (g_storedFilters.customDiffFilter[1] != 0 ? level.placement <= g_storedFilters.customDiffFilter[1] : true)) levelDiff = 4;
+	bool diffFilter = false;
+	if (!g_storedFilters.diffFilter[4] && g_storedFilters.diffFilter[0] && level.placement <= 50) diffFilter = true;
+	else if (!g_storedFilters.diffFilter[4] && g_storedFilters.diffFilter[1] && level.placement <= 150) diffFilter = true;
+	else if (!g_storedFilters.diffFilter[4] && g_storedFilters.diffFilter[2] && level.placement <= 300) diffFilter = true;
+	else if (!g_storedFilters.diffFilter[4] && g_storedFilters.diffFilter[3] && level.placement > 300) diffFilter = true;
+	else if (g_storedFilters.diffFilter[4] && (g_storedFilters.customDiffFilter[0] != 0 ? level.placement > g_storedFilters.customDiffFilter[0] : true) && (g_storedFilters.customDiffFilter[1] != 0 ? level.placement <= g_storedFilters.customDiffFilter[1] : true)) diffFilter = true;
 
 	bool byLength = g_storedFilters.lengthFilter[levelLength] || g_storedFilters.lengthFilter == g_defaultFilters.lengthFilter;
-	bool byDifficulty = g_storedFilters.diffFilter[levelDiff] || g_storedFilters.diffFilter == g_defaultFilters.diffFilter;
+	bool byDifficulty = diffFilter || g_storedFilters.diffFilter == g_defaultFilters.diffFilter;
 	bool byRate = g_storedFilters.rated ? g_levelsData[level.levelID].rated : (g_storedFilters.unrated ? g_levelsData[level.levelID].unrated : true);
 	bool byPlayer = (g_storedFilters.completed ? (g_usersRecords.contains(g_storedFilters.username) ? std::ranges::find(g_usersRecords[g_storedFilters.username], level.id) != g_usersRecords[g_storedFilters.username].end() : false) : true);
 	bool byCreator = (g_storedFilters.byHolder ? g_levelsData[level.levelID].holder == g_storedFilters.holder : true);
