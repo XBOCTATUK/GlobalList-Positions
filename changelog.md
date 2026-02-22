@@ -1,3 +1,6 @@
+# 2.0.3
+- Fixed batch system.
+
 # 2.0.2
 - <co>Fixed</c> difficulty filter.
 - <cg>Increased</c> the time between level data updates to 15 minutes.

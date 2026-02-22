@@ -194,7 +194,7 @@ void LoadingPopup::loadLevelsFinished(CCArray* levels, char const* key) {
 	}
 
 	m_currentBatch++;
-	loadBatch();
+	schedule(schedule_selector(loadBatch), 1.0f);
 }
 
 void LoadingPopup::loadLevelsFailed(char const* key) {
