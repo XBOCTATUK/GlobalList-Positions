@@ -1,6 +1,15 @@
 #pragma once
 
 #include <Geode/Geode.hpp>
+#include <Geode/binding/AppDelegate.hpp>
+#include <Geode/binding/CustomListView.hpp>
+#include <Geode/binding/GameLevelManager.hpp>
+#include <Geode/binding/GJListLayer.hpp>
+#include <Geode/binding/GJSearchObject.hpp>
+#include <Geode/binding/InfoAlertButton.hpp>
+#include <Geode/binding/LoadingCircle.hpp>
+#include <Geode/binding/SetIDPopup.hpp>
+#include <Geode/loader/Mod.hpp>
 #include <Geode/binding/LevelManagerDelegate.hpp>
 #include <Geode/binding/SetIDPopupDelegate.hpp>
 #include <Geode/ui/TextInput.hpp>

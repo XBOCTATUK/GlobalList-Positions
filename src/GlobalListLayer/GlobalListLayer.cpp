@@ -1,13 +1,4 @@
 #include "./GlobalListLayer.hpp"
-#include <Geode/binding/AppDelegate.hpp>
-#include <Geode/binding/CustomListView.hpp>
-#include <Geode/binding/GameLevelManager.hpp>
-#include <Geode/binding/GJListLayer.hpp>
-#include <Geode/binding/GJSearchObject.hpp>
-#include <Geode/binding/InfoAlertButton.hpp>
-#include <Geode/binding/LoadingCircle.hpp>
-#include <Geode/binding/SetIDPopup.hpp>
-#include <Geode/loader/Mod.hpp>
 #include <random>
 
 GlobalListLayer* GlobalListLayer::create() {
@@ -28,7 +19,7 @@ CCScene* GlobalListLayer::scene() {
 }
 
 constexpr const char* globalListInfo =
-"A Demonlist of <cr>all Extreme Demons</c> worth rating.\nBased on <cy>demonlist.org.</c>";
+"A Demonlist of <cy>rateworthy levels</c> of an <cr>extreme demon</c> difficulty";
 
 // This layer contains hiimjasmine00's work (Integrated DemonList).
 // I'm too silly to do something like this completely on my own =3
@@ -125,7 +116,7 @@ bool GlobalListLayer::init() {
 	m_rightButton->setID("next-page-button");
 	btnsMenu->addChild(m_rightButton);
 
-	m_infoButton = InfoAlertButton::create("Global DemonList", globalListInfo, 1.0f);
+	m_infoButton = InfoAlertButton::create("Global Demonlist", globalListInfo, 1.0f);
 	m_infoButton->setPosition({ 30.0f, 30.0f });
 	m_infoButton->setID("info-button");
 	btnsMenu->addChild(m_infoButton);

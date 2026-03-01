@@ -1,5 +1,5 @@
 # 2.0.3
-- Fixed batch system.
+- <co>Fixed</c> batch system.
 
 # 2.0.2
 - <co>Fixed</c> difficulty filter.

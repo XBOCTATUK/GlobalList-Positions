@@ -146,6 +146,12 @@ class $modify(MyLevelCell, LevelCell) {
 };
 
 class $modify(MyLevelInfoLayer, LevelInfoLayer) {
+    static void onModify(auto& self) {
+        if (!self.setHookPriorityAfterPost("LevelInfoLayer::init", "gdutilsdevs.gdutils")) {
+            log::warn("Failed to set hook priority.");
+        }
+    }
+
     struct Fields {
         TaskHolder<web::WebResponse> m_listener;
         std::unordered_map<CCNode*, float> m_origPositions;
